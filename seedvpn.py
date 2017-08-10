@@ -274,7 +274,7 @@ def server_main(gwip, netmask, lip, lport):
         try:
             rs, _, _ = select.select(fds, [], [])
         except select.error as e:
-            print e
+            print(e)
             sys.exit(-1)
         for fd in rs:
             if fd == sockfd:
