@@ -92,21 +92,21 @@ class tunnel:
     '''
 
     def add_route(dest, mask, gw):
-    # sudo strace route add -net 10.10.0.0/16 gw 10.10.0.1
-    # ioctl(3, SIOCADDRT, ifr)
-    # /usr/include/net/route.h
-    pad = '\x00' * 8
-    inet_aton = socket.inet_aton
-    sockaddr_in_fmt = 'hH4s8s'
-    rtentry_fmt = 'L16s16s16sH38s'
-    dst = struct.pack(sockaddr_in_fmt, AF_INET, 0, inet_aton(dest), pad)
-    next_gw = struct.pack(sockaddr_in_fmt, AF_INET, 0, inet_aton(gw), pad)
-    netmask = struct.pack(sockaddr_in_fmt, AF_INET, 0, inet_aton(mask), pad)
-    rt_flags = RTF_UP | RTF_GATEWAY
-    rtentry = struct.pack(rtentry_fmt,0, dst, next_gw, netmask, rt_flags, '\x00' * 38)
-    sock = socket.socket(AF_INET, socket.SOCK_DGRAM, 0)
-    fcntl.ioctl(sock.fileno(), SIOCADDRT, rtentry)
-    return 0
+        # sudo strace route add -net 10.10.0.0/16 gw 10.10.0.1
+        # ioctl(3, SIOCADDRT, ifr)
+        # /usr/include/net/route.h
+        pad = '\x00' * 8
+        inet_aton = socket.inet_aton
+        sockaddr_in_fmt = 'hH4s8s'
+        rtentry_fmt = 'L16s16s16sH38s'
+        dst = struct.pack(sockaddr_in_fmt, AF_INET, 0, inet_aton(dest), pad)
+        next_gw = struct.pack(sockaddr_in_fmt, AF_INET, 0, inet_aton(gw), pad)
+        netmask = struct.pack(sockaddr_in_fmt, AF_INET, 0, inet_aton(mask), pad)
+        rt_flags = RTF_UP | RTF_GATEWAY
+        rtentry = struct.pack(rtentry_fmt,0, dst, next_gw, netmask, rt_flags, '\x00' * 38)
+        sock = socket.socket(AF_INET, socket.SOCK_DGRAM, 0)
+        fcntl.ioctl(sock.fileno(), SIOCADDRT, rtentry)
+        return 0
 
 
 class encrypt():
