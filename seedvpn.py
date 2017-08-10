@@ -34,7 +34,7 @@ class tunnel:
         self.mask = mask
         self.gw = gw
 
-    def create_tunnel():
+    def create_tunnel(self):
 
         # Open TUN device file.
         tun = os.open('/dev/net/tun', os.O_RDONLY)
@@ -49,7 +49,7 @@ class tunnel:
         fcntl.ioctl(tun, self.TUNSETOWNER, 1000)
         return dev, tun
 
-    def configure(ip, mask, dev):
+    def configure(self, ip, mask, dev):
         # http://stackoverflow.com/questions/6652384/how-to-set-the-ip-address-from-c-in-linux
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_IP)
         AF_INET = socket.AF_INET
@@ -91,7 +91,7 @@ class tunnel:
             ip_forward.write('1')
     '''
 
-    def add_route(dest, mask, gw):
+    def add_route(self,dest, mask, gw):
         # sudo strace route add -net 10.10.0.0/16 gw 10.10.0.1
         # ioctl(3, SIOCADDRT, ifr)
         # /usr/include/net/route.h
