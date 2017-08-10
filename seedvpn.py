@@ -37,7 +37,7 @@ class tunnel:
     def create_tunnel():
 
         # Open TUN device file.
-        tun = open('/dev/net/tun', 'r+b')
+        tun = os.open('/dev/net/tun', os.O_RDONLY)
 
         # Tall it we want a TUN device named tun0.
         ifr = struct.pack('16sH', 'tun%d', IFF_TUN | IFF_NO_PI)
