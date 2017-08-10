@@ -40,13 +40,13 @@ class tunnel:
         tun = os.open('/dev/net/tun', os.O_RDONLY)
 
         # Tall it we want a TUN device named tun0.
-        ifr = struct.pack('16sH', 'tun%d', IFF_TUN | IFF_NO_PI)
-        ret = fcntl.ioctl(tun, TUNSETIFF, ifr)
+        ifr = struct.pack('16sH', 'tun%d', self.IFF_TUN | self.IFF_NO_PI)
+        ret = fcntl.ioctl(tun, self.TUNSETIFF, ifr)
         dev, _ = struct.unpack('16sH', ret)
         dev = dev.strip()
 
         # Optionally, we want it be accessed by the normal user.
-        fcntl.ioctl(tun, TUNSETOWNER, 1000)
+        fcntl.ioctl(tun, self.TUNSETOWNER, 1000)
         return dev, tun
 
     def configure(ip, mask, dev):
@@ -60,20 +60,20 @@ class tunnel:
         flags_mt = '16sH'
 
         # ADDR
-        siocsifaddr = struct.pack(sockaddr_mt, dev, AF_INET, 0, addrbuf)
-        fcntl.ioctl(fd, SIOCSIFADDR, siocsifaddr)
+        siocsifaddr = struct.pack(sockaddr_mt, dev, self.AF_INET, 0, addrbuf)
+        fcntl.ioctl(fd, self.SIOCSIFADDR, siocsifaddr)
 
         # MASK
-        siocsifnetmask = struct.pack(sockaddr_mt, dev, AF_INET, 0, maskbuf)
-        fcntl.ioctl(fd, SIOCSIFNETMASK, siocsifnetmask)
+        siocsifnetmask = struct.pack(sockaddr_mt, dev, self.AF_INET, 0, maskbuf)
+        fcntl.ioctl(fd, self.SIOCSIFNETMASK, siocsifnetmask)
 
         # ifconfig tun0 up
         ifr2 = struct.pack(flags_mt, dev, 0)
-        ifr_ret = fcntl.ioctl(fd, SIOCGIFFLAGS, ifr2)
+        ifr_ret = fcntl.ioctl(fd, self.SIOCGIFFLAGS, ifr2)
         cur_flags = struct.unpack(flags_mt, ifr_ret)[1]
-        flags = cur_flags | (IFF_UP | IFF_RUNNING)
+        flags = cur_flags | (self.IFF_UP | self.IFF_RUNNING)
         ifr_ret = struct.pack(flags_mt, dev, flags)
-        ifr_ret = fcntl.ioctl(fd, SIOCSIFFLAGS, ifr_ret)
+        ifr_ret = fcntl.ioctl(fd, self.SIOCSIFFLAGS, ifr_ret)
         return 0
     '''
     def add_route(ip, mask, gw):
@@ -102,10 +102,10 @@ class tunnel:
         dst = struct.pack(sockaddr_in_fmt, AF_INET, 0, inet_aton(dest), pad)
         next_gw = struct.pack(sockaddr_in_fmt, AF_INET, 0, inet_aton(gw), pad)
         netmask = struct.pack(sockaddr_in_fmt, AF_INET, 0, inet_aton(mask), pad)
-        rt_flags = RTF_UP | RTF_GATEWAY
+        rt_flags = self.RTF_UP | self.RTF_GATEWAY
         rtentry = struct.pack(rtentry_fmt,0, dst, next_gw, netmask, rt_flags, '\x00' * 38)
-        sock = socket.socket(AF_INET, socket.SOCK_DGRAM, 0)
-        fcntl.ioctl(sock.fileno(), SIOCADDRT, rtentry)
+        sock = socket.socket(self.AF_INET, socket.SOCK_DGRAM, 0)
+        fcntl.ioctl(sock.fileno(), self.SIOCADDRT, rtentry)
         return 0
 
 
