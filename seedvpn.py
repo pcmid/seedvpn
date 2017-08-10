@@ -201,7 +201,7 @@ def connect_to_vpn(addr, port):
     try:
         sock.connect(addr)
     except socket.error as e:
-        print 'Connect to VPN:[%d],[%s]' % (e.errno, e.strerror)
+        print('Connect to VPN:[%d],[%s]' % (e.errno, e.strerror))
         return None
     sock.setblocking(False)
     return sock
