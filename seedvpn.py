@@ -118,11 +118,7 @@ class tunnel():
 class encrypt():
     def __init__(self):
         try:
-            from Crypto import Random
-            from Crypto.Hash import SHA
-            from Crypto.Cipher import PKCS1_v1_5 as Cipher_pkcs1_v1_5
-            from Crypto.Signature import PKCS1_v1_5 as Signature_pkcs1_v1_5
-            from Crypto.PublicKey import RSA
+
         except:
             print("please run \"pip3 install pycrypto\" in shell")
 
