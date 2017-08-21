@@ -115,60 +115,6 @@ class tunnel():
         return 0
 
 
-class encrypt():
-    def __init__(self):
-        try:
-
-        except:
-            print("please run \"pip3 install pycrypto\" in shell")
-
-    def build_key():
-        # 伪随机数生成器
-        random_generator = Random.new().read
-        # rsa算法生成实例
-        rsa = RSA.generate(1024, random_generator)
-
-        # master的秘钥对的生成
-        private_pem = rsa.exportKey()
-
-        with open('master-private.pem', 'w') as f:
-            f.write(private_pem)
-
-        public_pem = rsa.publickey().exportKey()
-        with open('master-public.pem', 'w') as f:
-            f.write(public_pem)
-
-        # ghost的秘钥对的生成
-        private_pem = rsa.exportKey()
-        with open('master-private.pem', 'w') as f:
-            f.write(private_pem)
-
-        public_pem = rsa.publickey().exportKey()
-        with open('master-public.pem', 'w') as f:
-            f.write(public_pem)
-
-    def encrypt(source_data):
-        '''对source_data进行加密，密钥ghost-public.pem
-          返回密文cipher_data
-        '''
-        with open('ghost-public.pem') as f:
-            key = f.read()
-            rsakey = RSA.importKey(key)
-            cipher = Cipher_pkcs1_v1_5.new(rsakey)
-            cipher_data = base64.b64encode(cipher.encrypt(source_data))
-        return cipher_data
-
-        def decrypt(encrypt_data):
-            '''使用私钥ghost-private.pem对encrypt_data解密，
-             返回原文data
-            '''
-        with open('ghost-private.pem') as f:
-            key = f.read()
-            rsakey = RSA.importKey(key)
-            cipher = Cipher_pkcs1_v1_5.new(rsakey)
-            data = cipher.decrypt(base64.b64decode(encrypt_data), random_generator)
-        return data
-
 class read_config():
     def __init__(self):
         pass
@@ -187,6 +133,7 @@ class transport():
         return pack_len
 
     def recv(self, buf):
+
         self.buf += buf
         while True:
             #Only one IP package can be written at a time.
@@ -213,10 +160,12 @@ def client_main(ip, netmask, host, port):
     dev, tundev = tunnel.create_tunnel()
     tunfd = tundev.fileno()
     time.sleep(1)
+
     iret = tunnel.configure(ip, netmask, dev)
     if iret is None:
         print(u'ip config %s error' % dev)
         return sys.exit(1)
+
     iret = tunnel.add_route('10.10.0.0', '255.255.0.0', '10.10.0.1')
     if iret is None:
         print(u'route config %s error' % dev)
@@ -227,6 +176,7 @@ def client_main(ip, netmask, host, port):
     if sock is None:
         print(u'SOCK dev Fail')
         sys.exit(-1)
+
     client = Transport(sock)
     client.set_tunfd(tunfd)
     sockfd = sock.fileno()
