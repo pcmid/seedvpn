@@ -1,34 +1,38 @@
-import os
-import sys
-import socket
-import struct
 import argparse
 import fcntl
+import os
 import select
+import socket
+import struct
+import sys
+
+
 #import ConfigParser
-class tunnel:
+
+class tunnel():
+    # find const values
+    # grep IFF_UP -rl /usr/include/
+
+    IFF_UP = 0x1
+    IFF_RUNNING = 0x40
+    IFNAMSIZ = 16
+    SIOCSIFADDR = 0x8916
+    SIOCSIFNETMASK = 0x891c
+    SIOCGIFFLAGS = 0x8913
+    SIOCSIFFLAGS = 0x8914
+    SIOCADDRT = 0x890B
+
+    RTF_UP = 0x0001
+    RTF_GATEWAY = 0x0002
+
+    AF_INET = socket.AF_INET
+
+    TUNSETIFF = 0x400454ca
+    TUNSETOWNER = TUNSETIFF + 2
+    IFF_TUN = 0x0001
+    IFF_NO_PI = 0x1000
+
     def __init__(self, ip, mask, gw):
-        
-        # find const values
-        # grep IFF_UP -rl /usr/include/
-        self.IFF_UP = 0x1
-        self.IFF_RUNNING = 0x40
-        self.IFNAMSIZ = 16
-        self.SIOCSIFADDR = 0x8916
-        self.SIOCSIFNETMASK = 0x891c
-        self.SIOCGIFFLAGS = 0x8913
-        self.SIOCSIFFLAGS = 0x8914
-        self.SIOCADDRT = 0x890B
-
-        self.RTF_UP = 0x0001
-        self.RTF_GATEWAY = 0x0002
-
-        self.AF_INET = socket.AF_INET
-
-        self.TUNSETIFF = 0x400454ca
-        self.TUNSETOWNER = self.TUNSETIFF + 2
-        self.IFF_TUN = 0x0001
-        self.IFF_NO_PI = 0x1000
 
         self.ip = ip
         self.mask = mask
