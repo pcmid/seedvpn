@@ -10,6 +10,7 @@ import sys
 #import ConfigParser
 
 class tunnel():
+
     # find const values
     # grep IFF_UP -rl /usr/include/
 
@@ -44,7 +45,7 @@ class tunnel():
         tun = os.open('/dev/net/tun', os.O_RDONLY)
 
         # Tall it we want a TUN device named tun0.
-        ifr = struct.pack('16sH', 'tun%d', self.IFF_TUN | self.IFF_NO_PI)
+        ifr = struct.pack('16sH', 'tun%d'.encode('utf-8'), self.IFF_TUN | self.IFF_NO_PI)
         ret = fcntl.ioctl(tun, self.TUNSETIFF, ifr)
         dev, _ = struct.unpack('16sH', ret)
         dev = dev.strip()
@@ -54,9 +55,10 @@ class tunnel():
         return dev, tun
 
     def configure(self, ip, mask, dev):
+
         # http://stackoverflow.com/questions/6652384/how-to-set-the-ip-address-from-c-in-linux
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_IP)
-        AF_INET = socket.AF_INET
+        self.AF_INET = socket.AF_INET
         fd = sock.fileno()
         addrbuf = struct.pack('BBBB', *[int(el) for el in ipaddr.split('.')])
         maskbuf = struct.pack('BBBB', *[int(el) for el in netmask.split('.')])
