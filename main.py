@@ -2,17 +2,19 @@
 
 '''
     A Light UDP Tunnel VPN
-    Author: sweet-st 
+    Author: sweet-st
     Updated: 2017-08-22
 '''
 
-import os, sys
+import os
+import sys
 import hashlib
 import getopt
 import fcntl
 import time
 import struct
-import socket, select
+import socket
+import select
 import traceback
 import signal
 import ctypes
@@ -62,7 +64,8 @@ class Tunnel():
             self.prev_gateway_metric = self.prev_gateway + " metric 2"
             self.new_gateway = "default dev %s metric 1" % (self.tname)
             self.tun_gateway = self.prev_gateway.replace("default", IP)
-            self.old_dns = file("/etc/resolv.conf", "rb").read()
+            with open("/etc/resolv.conf", "rb") as fs:
+                self.old_dns = fs.read()
             # Remove default gateway
             os.system("ip route del " + self.prev_gateway)
             # Add default gateway with metric
@@ -72,7 +75,8 @@ class Tunnel():
             # Add new default gateway
             os.system("ip route add " + self.new_gateway)
             # Set new DNS to 8.8.8.8
-            file("/etc/resolv.conf", "wb").write("nameserver 8.8.8.8")
+            with open("/etc/resolv.conf", "wb") as fs:
+                fs.write("nameserver 8.8.8.8")
 
     def restore_routes(self):
         if MODE == 1: # Server
@@ -83,7 +87,8 @@ class Tunnel():
             os.system("ip route del " + self.prev_gateway_metric)
             os.system("ip route del " + self.tun_gateway)
             os.system("ip route add " + self.prev_gateway)
-            file("/etc/resolv.conf", "wb").write(self.old_dns)
+            with open("/etc/resolv.conf", "wb") as fs:
+                fs.write(self.old_dns)
 
     def run(self):
         global PORT
