@@ -54,14 +54,14 @@ class tunnel():
         fcntl.ioctl(tun, self.TUNSETOWNER, 1000)
         return dev, tun
 
-    def configure(self, ip, mask, dev):
+    def configure(self,dev):
 
         # http://stackoverflow.com/questions/6652384/how-to-set-the-ip-address-from-c-in-linux
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_IP)
         self.AF_INET = socket.AF_INET
         fd = sock.fileno()
-        addrbuf = struct.pack('BBBB', *[int(el) for el in ipaddr.split('.')])
-        maskbuf = struct.pack('BBBB', *[int(el) for el in netmask.split('.')])
+        addrbuf = struct.pack('BBBB', *[int(el) for el in self.ip.split('.')])
+        maskbuf = struct.pack('BBBB', *[int(el) for el in self.mask.split('.')])
         sockaddr_mt = '16sHH4s'
         flags_mt = '16sH'
 
@@ -120,7 +120,7 @@ class read_config():
         pass
 
 
-class transport():
+class Transport():
     def set_tunfd(self, tunfd):
         self.tunfd = tunfd
 
@@ -144,6 +144,7 @@ class transport():
             self.buf = self.buf[length:]
         os.write(self.tunfd, frame)
 
+
 def connect_to_vpn(addr, port):
     sock = socket.socket()
     addr = (addr, port)
@@ -155,9 +156,12 @@ def connect_to_vpn(addr, port):
     sock.setblocking(False)
     return sock
 
+
 def client_main(ip, netmask, host, port):
     buflen = 65535
-    dev, tundev = tunnel.create_tunnel()
+
+    tun = tunnel(ip, netmask,'10.10.0.0')
+    dev, tundev = tun.create_tunnel()
     tunfd = tundev.fileno()
     time.sleep(1)
 

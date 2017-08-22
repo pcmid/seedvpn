@@ -1,0 +1,45 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+AF_INET	../seedvpn.py	/^    AF_INET = socket.AF_INET$/;"	kind:variable	line:29
+IFF_NO_PI	../seedvpn.py	/^    IFF_NO_PI = 0x1000$/;"	kind:variable	line:34
+IFF_RUNNING	../seedvpn.py	/^    IFF_RUNNING = 0x40$/;"	kind:variable	line:18
+IFF_TUN	../seedvpn.py	/^    IFF_TUN = 0x0001$/;"	kind:variable	line:33
+IFF_UP	../seedvpn.py	/^    IFF_UP = 0x1$/;"	kind:variable	line:17
+IFNAMSIZ	../seedvpn.py	/^    IFNAMSIZ = 16$/;"	kind:variable	line:19
+RTF_GATEWAY	../seedvpn.py	/^    RTF_GATEWAY = 0x0002$/;"	kind:variable	line:27
+RTF_UP	../seedvpn.py	/^    RTF_UP = 0x0001$/;"	kind:variable	line:26
+SIOCADDRT	../seedvpn.py	/^    SIOCADDRT = 0x890B$/;"	kind:variable	line:24
+SIOCGIFFLAGS	../seedvpn.py	/^    SIOCGIFFLAGS = 0x8913$/;"	kind:variable	line:22
+SIOCSIFADDR	../seedvpn.py	/^    SIOCSIFADDR = 0x8916$/;"	kind:variable	line:20
+SIOCSIFFLAGS	../seedvpn.py	/^    SIOCSIFFLAGS = 0x8914$/;"	kind:variable	line:23
+SIOCSIFNETMASK	../seedvpn.py	/^    SIOCSIFNETMASK = 0x891c$/;"	kind:variable	line:21
+TUNSETIFF	../seedvpn.py	/^    TUNSETIFF = 0x400454ca$/;"	kind:variable	line:31
+TUNSETOWNER	../seedvpn.py	/^    TUNSETOWNER = TUNSETIFF + 2$/;"	kind:variable	line:32
+Transport	../seedvpn.py	/^class Transport():$/;"	kind:class	line:123
+__init__	../seedvpn.py	/^    def __init__(self):$/;"	kind:member	line:119
+__init__	../seedvpn.py	/^    def __init__(self, ip, mask, gw):$/;"	kind:member	line:36
+add_route	../seedvpn.py	/^    def add_route(self,dest, mask, gw):$/;"	kind:member	line:100
+client_main	../seedvpn.py	/^def client_main(ip, netmask, host, port):$/;"	kind:function	line:160
+configure	../seedvpn.py	/^    def configure(self,dev):$/;"	kind:member	line:57
+connect_to_vpn	../seedvpn.py	/^def connect_to_vpn(addr, port):$/;"	kind:function	line:148
+create_tunnel	../seedvpn.py	/^    def create_tunnel(self):$/;"	kind:member	line:42
+crypto	../encrypt.py	/^crypto = rsa.encrypt(message.encode(), pubkey)$/;"	kind:variable	line:24
+encrypt.py	../encrypt.py	1;"	kind:file	line:1
+get_frame	../seedvpn.py	/^    def get_frame(self, buf):$/;"	kind:member	line:127
+main	../seedvpn.py	/^def main():$/;"	kind:function	line:260
+main.py	../main.py	1;"	kind:file	line:1
+message	../encrypt.py	/^message = 'hello'$/;"	kind:variable	line:21
+message	../encrypt.py	/^message = rsa.decrypt(crypto, privkey).decode()$/;"	kind:variable	line:27
+privkey	../encrypt.py	/^    privkey = rsa.PrivateKey.load_pkcs1(f.read().encode())$/;"	kind:variable	line:18
+pubkey	../encrypt.py	/^    pubkey = rsa.PublicKey.load_pkcs1(f.read().encode())$/;"	kind:variable	line:15
+read_config	../seedvpn.py	/^class read_config():$/;"	kind:class	line:118
+recv	../seedvpn.py	/^    def recv(self, buf):$/;"	kind:member	line:135
+seedvpn.py	../seedvpn.py	1;"	kind:file	line:1
+server_main	../seedvpn.py	/^def server_main(gwip, netmask, lip, lport):$/;"	kind:function	line:210
+set_tunfd	../seedvpn.py	/^    def set_tunfd(self, tunfd):$/;"	kind:member	line:124
+signature	../encrypt.py	/^signature = rsa.sign(message.encode(), privkey, 'SHA-1')$/;"	kind:variable	line:31
+tunnel	../seedvpn.py	/^class tunnel():$/;"	kind:class	line:12
