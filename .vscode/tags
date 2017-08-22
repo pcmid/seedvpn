@@ -4,42 +4,107 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+AF_INET	../main.py	/^    AF_INET = socket.AF_INET$/;"	kind:variable	line:26
 AF_INET	../seedvpn.py	/^    AF_INET = socket.AF_INET$/;"	kind:variable	line:29
+BUFFER_SIZE	../tunnel.py	/^BUFFER_SIZE = 8192$/;"	kind:variable	line:25
+BUFFER_SIZE	../tuntest.py	/^BUFFER_SIZE = 8192$/;"	kind:variable	line:25
+DEBUG	../tunnel.py	/^DEBUG = 0$/;"	kind:variable	line:27
+DEBUG	../tuntest.py	/^DEBUG = 0$/;"	kind:variable	line:27
+IFACE_IP	../tunnel.py	/^IFACE_IP = "10.0.0.1\/24"$/;"	kind:variable	line:29
+IFACE_IP	../tuntest.py	/^IFACE_IP = "10.0.0.1\/24"$/;"	kind:variable	line:29
+IFF_NO_PI	../main.py	/^    IFF_NO_PI = 0x1000$/;"	kind:variable	line:31
 IFF_NO_PI	../seedvpn.py	/^    IFF_NO_PI = 0x1000$/;"	kind:variable	line:34
+IFF_RUNNING	../main.py	/^    IFF_RUNNING = 0x40$/;"	kind:variable	line:15
 IFF_RUNNING	../seedvpn.py	/^    IFF_RUNNING = 0x40$/;"	kind:variable	line:18
+IFF_TUN	../main.py	/^    IFF_TUN = 0x0001$/;"	kind:variable	line:30
 IFF_TUN	../seedvpn.py	/^    IFF_TUN = 0x0001$/;"	kind:variable	line:33
+IFF_TUN	../tunnel.py	/^IFF_TUN   = 0x0001$/;"	kind:variable	line:23
+IFF_TUN	../tuntest.py	/^IFF_TUN   = 0x0001$/;"	kind:variable	line:23
+IFF_UP	../main.py	/^    IFF_UP = 0x1$/;"	kind:variable	line:14
 IFF_UP	../seedvpn.py	/^    IFF_UP = 0x1$/;"	kind:variable	line:17
+IFNAMSIZ	../main.py	/^    IFNAMSIZ = 16$/;"	kind:variable	line:16
 IFNAMSIZ	../seedvpn.py	/^    IFNAMSIZ = 16$/;"	kind:variable	line:19
+MODE	../tunnel.py	/^MODE = 0$/;"	kind:variable	line:26
+MODE	../tuntest.py	/^MODE = 0$/;"	kind:variable	line:26
+MTU	../tunnel.py	/^MTU = 1500$/;"	kind:variable	line:30
+MTU	../tuntest.py	/^MTU = 1500$/;"	kind:variable	line:30
+PORT	../tunnel.py	/^PORT = 0$/;"	kind:variable	line:28
+PORT	../tuntest.py	/^PORT = 0$/;"	kind:variable	line:28
+RTF_GATEWAY	../main.py	/^    RTF_GATEWAY = 0x0002$/;"	kind:variable	line:24
 RTF_GATEWAY	../seedvpn.py	/^    RTF_GATEWAY = 0x0002$/;"	kind:variable	line:27
+RTF_UP	../main.py	/^    RTF_UP = 0x0001$/;"	kind:variable	line:23
 RTF_UP	../seedvpn.py	/^    RTF_UP = 0x0001$/;"	kind:variable	line:26
+SHARED_PASSWORD	../tunnel.py	/^SHARED_PASSWORD = hashlib.sha1("test").digest()$/;"	kind:variable	line:21
+SHARED_PASSWORD	../tuntest.py	/^SHARED_PASSWORD = hashlib.sha1("xiaoxia").digest()$/;"	kind:variable	line:21
+SIOCADDRT	../main.py	/^    SIOCADDRT = 0x890B$/;"	kind:variable	line:21
 SIOCADDRT	../seedvpn.py	/^    SIOCADDRT = 0x890B$/;"	kind:variable	line:24
+SIOCGIFFLAGS	../main.py	/^    SIOCGIFFLAGS = 0x8913$/;"	kind:variable	line:19
 SIOCGIFFLAGS	../seedvpn.py	/^    SIOCGIFFLAGS = 0x8913$/;"	kind:variable	line:22
+SIOCSIFADDR	../main.py	/^    SIOCSIFADDR = 0x8916$/;"	kind:variable	line:17
 SIOCSIFADDR	../seedvpn.py	/^    SIOCSIFADDR = 0x8916$/;"	kind:variable	line:20
+SIOCSIFFLAGS	../main.py	/^    SIOCSIFFLAGS = 0x8914$/;"	kind:variable	line:20
 SIOCSIFFLAGS	../seedvpn.py	/^    SIOCSIFFLAGS = 0x8914$/;"	kind:variable	line:23
+SIOCSIFNETMASK	../main.py	/^    SIOCSIFNETMASK = 0x891c$/;"	kind:variable	line:18
 SIOCSIFNETMASK	../seedvpn.py	/^    SIOCSIFNETMASK = 0x891c$/;"	kind:variable	line:21
+TIMEOUT	../tunnel.py	/^TIMEOUT = 60*10 # seconds$/;"	kind:variable	line:31
+TIMEOUT	../tuntest.py	/^TIMEOUT = 60*10 # seconds$/;"	kind:variable	line:31
+TUNSETIFF	../main.py	/^    TUNSETIFF = 0x400454ca$/;"	kind:variable	line:28
 TUNSETIFF	../seedvpn.py	/^    TUNSETIFF = 0x400454ca$/;"	kind:variable	line:31
+TUNSETIFF	../tunnel.py	/^TUNSETIFF = 0x400454ca$/;"	kind:variable	line:22
+TUNSETIFF	../tuntest.py	/^TUNSETIFF = 0x400454ca$/;"	kind:variable	line:22
+TUNSETOWNER	../main.py	/^    TUNSETOWNER = TUNSETIFF + 2$/;"	kind:variable	line:29
 TUNSETOWNER	../seedvpn.py	/^    TUNSETOWNER = TUNSETIFF + 2$/;"	kind:variable	line:32
+Transport	../main.py	/^class Transport(object):$/;"	kind:class	line:101
 Transport	../seedvpn.py	/^class Transport():$/;"	kind:class	line:123
+Tunnel	../main.py	/^class Tunnel(object):$/;"	kind:class	line:9
+Tunnel	../tunnel.py	/^class Tunnel():$/;"	kind:class	line:33
+Tunnel	../tuntest.py	/^class Tunnel():$/;"	kind:class	line:33
+__init__	../main.py	/^    def __init__(self, ip, mask, gw):$/;"	kind:member	line:34
 __init__	../seedvpn.py	/^    def __init__(self):$/;"	kind:member	line:119
 __init__	../seedvpn.py	/^    def __init__(self, ip, mask, gw):$/;"	kind:member	line:36
+add_route	../main.py	/^    def add_route(self):$/;"	kind:member	line:83
 add_route	../seedvpn.py	/^    def add_route(self,dest, mask, gw):$/;"	kind:member	line:100
 client_main	../seedvpn.py	/^def client_main(ip, netmask, host, port):$/;"	kind:function	line:160
+close	../tunnel.py	/^    def close(self):$/;"	kind:member	line:42
+close	../tuntest.py	/^    def close(self):$/;"	kind:member	line:42
+config	../tunnel.py	/^    def config(self, ip):$/;"	kind:member	line:45
+config	../tuntest.py	/^    def config(self, ip):$/;"	kind:member	line:45
+config_routes	../tunnel.py	/^    def config_routes(self):$/;"	kind:member	line:51
+config_routes	../tuntest.py	/^    def config_routes(self):$/;"	kind:member	line:51
 configure	../seedvpn.py	/^    def configure(self,dev):$/;"	kind:member	line:57
 connect_to_vpn	../seedvpn.py	/^def connect_to_vpn(addr, port):$/;"	kind:function	line:148
+create	../tunnel.py	/^    def create(self):$/;"	kind:member	line:34
+create	../tuntest.py	/^    def create(self):$/;"	kind:member	line:34
+create_tunnel	../main.py	/^    def create_tunnel(self):$/;"	kind:member	line:40
 create_tunnel	../seedvpn.py	/^    def create_tunnel(self):$/;"	kind:member	line:42
 crypto	../encrypt.py	/^crypto = rsa.encrypt(message.encode(), pubkey)$/;"	kind:variable	line:24
 encrypt.py	../encrypt.py	1;"	kind:file	line:1
+get_frame	../main.py	/^    def get_frame(self, buf):$/;"	kind:member	line:106
 get_frame	../seedvpn.py	/^    def get_frame(self, buf):$/;"	kind:member	line:127
+ifconfig	../main.py	/^    def ifconfig(self, dev):$/;"	kind:member	line:56
+main	../main.py	/^def main():$/;"	kind:function	line:127
 main	../seedvpn.py	/^def main():$/;"	kind:function	line:260
 main.py	../main.py	1;"	kind:file	line:1
 message	../encrypt.py	/^message = 'hello'$/;"	kind:variable	line:21
 message	../encrypt.py	/^message = rsa.decrypt(crypto, privkey).decode()$/;"	kind:variable	line:27
+on_exit	../tunnel.py	/^def on_exit(no, info):$/;"	kind:function	line:166
+on_exit	../tuntest.py	/^def on_exit(no, info):$/;"	kind:function	line:166
 privkey	../encrypt.py	/^    privkey = rsa.PrivateKey.load_pkcs1(f.read().encode())$/;"	kind:variable	line:18
 pubkey	../encrypt.py	/^    pubkey = rsa.PublicKey.load_pkcs1(f.read().encode())$/;"	kind:variable	line:15
 read_config	../seedvpn.py	/^class read_config():$/;"	kind:class	line:118
+recv	../main.py	/^    def recv(self, buf):$/;"	kind:member	line:114
 recv	../seedvpn.py	/^    def recv(self, buf):$/;"	kind:member	line:135
+restore_routes	../tunnel.py	/^    def restore_routes(self):$/;"	kind:member	line:77
+restore_routes	../tuntest.py	/^    def restore_routes(self):$/;"	kind:member	line:77
+run	../tunnel.py	/^    def run(self):$/;"	kind:member	line:88
+run	../tuntest.py	/^    def run(self):$/;"	kind:member	line:88
 seedvpn.py	../seedvpn.py	1;"	kind:file	line:1
 server_main	../seedvpn.py	/^def server_main(gwip, netmask, lip, lport):$/;"	kind:function	line:210
+set_tunfd	../main.py	/^    def set_tunfd(self, tunfd):$/;"	kind:member	line:103
 set_tunfd	../seedvpn.py	/^    def set_tunfd(self, tunfd):$/;"	kind:member	line:124
 signature	../encrypt.py	/^signature = rsa.sign(message.encode(), privkey, 'SHA-1')$/;"	kind:variable	line:31
 tunnel	../seedvpn.py	/^class tunnel():$/;"	kind:class	line:12
+tunnel.py	../tunnel.py	1;"	kind:file	line:1
+tuntest.py	../tuntest.py	1;"	kind:file	line:1
+usage	../tunnel.py	/^def usage(status = 0):$/;"	kind:function	line:162
+usage	../tuntest.py	/^def usage(status = 0):$/;"	kind:function	line:162
