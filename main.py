@@ -16,6 +16,7 @@ import socket
 import select
 import traceback
 from copy import deepcopy
+from IPy import IP
 
 PASSWORD = "test"
 ARGS_ERROR = 1
@@ -40,9 +41,7 @@ class Tunnel():
         except:
             self.tfd = os.open("/dev/tun", os.O_RDWR)
         ifs = fcntl.ioctl(self.tfd, TUNSETIFF, struct.pack("16sH", "t%d".encode("utf-8"), IFF_TUN))
-        #self.tname = ifs.strip(b'\x00')
         dev, _ = struct.unpack("16sH", ifs)
-        #dev = dev.decode()
         self.tname = dev.strip(b"\x00").decode()
 
     def close(self):
@@ -58,7 +57,7 @@ class Tunnel():
         if MODE == 1: # Server
             pass
         else: # Client
-            print("设置新网关...")
+            print("设置新路由...")
             # 查找默认路由
             routes = os.popen("ip route show").readlines()
             defaults = [x.rstrip() for x in routes if x.startswith("default")]
@@ -87,7 +86,7 @@ class Tunnel():
         if MODE == 1: # Server
             pass
         else: # Client
-            print("恢复源路由...")
+            print("\n恢复源路由...")
             os.system("ip route del " + self.new_gateway)
             os.system("ip route del " + self.prev_gateway_metric)
             os.system("ip route del " + self.tun_gateway)
@@ -100,23 +99,24 @@ class Tunnel():
         self.udpfd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         if MODE == 1:
             self.udpfd.bind(("", PORT))
+            print("DHCP")
+            dhcpd = DHCP(IFACE_IP.replace('1/','0/'))
         else:
             self.udpfd.bind(("", 0))
 
         self.clients = {}
         self.logged = False
-        self.try_logins = 5
-        self.log_time = 0
+        self.tryLogins = 5
+        self.logTime = 0
 
         while True:
-            if MODE == 2 and not self.logged and time.time() - self.log_time > 2.:
+            if MODE == 2 and not self.logged and time.time() - self.logTime > 2.:
                 print("登录中...")
-                self.udpfd.sendto(("LOGIN:" + PASSWORD + ":" +
-                    IFACE_IP.split("/")[0]).encode(), (IP, PORT))
-                self.try_logins -= 1
-                if self.try_logins == 0:
+                self.udpfd.sendto(("LOGIN:" + PASSWORD).encode(), (IP, PORT))
+                self.tryLogins -= 1
+                if self.tryLogins == 0:
                     raise Exception("登录失败")
-                self.log_time = time.time()
+                self.logTime = time.time()
 
             rset = select.select([self.udpfd, self.tfd], [], [], 1)[0]
             for r in rset:
@@ -134,39 +134,71 @@ class Tunnel():
                     if MODE == 1: # Server
                         key = src
                         if key not in self.clients:
+                        #如果第一次连接
+                            localIP = dhcpd.assignIP()
+                            print(localIP)
                             try:
+                                
                                 if (data.decode().startswith("LOGIN:") and data.decode().split(":")[1])==PASSWORD:
-                                    localIP = data.decode().split(":")[2]
+                                    #localIP = data.decode().split(":")[2]
+                                    
                                     self.clients[key] = {"aliveTime": time.time(),
+                                                        "localIP": localIP,
                                                         "localIPn": socket.inet_aton(localIP)}
                                     print("新连接：", src, "IP：", localIP)
-                                    self.udpfd.sendto("LOGIN:SUCCESS".encode(), src)
+                                    self.udpfd.sendto(("LOGIN:SUCCESS" + ":" + localIP).encode(), src)
                             except:
                                 print("来自",src,"的连接密码无效")
                                 self.udpfd.sendto("LOGIN:PASSWORD".encode(), src)
                         else:
                             os.write(self.tfd, data)
                             self.clients[key]["aliveTime"] = time.time()
+
                     else: # Client
                         if data.decode().startswith("LOGIN"):
                             if data.decode().endswith("PASSWORD"):
                                 self.logged = False
-                                raise Exception("登录密码错误！")
+                                print("登录密码错误！")
+                                sys.exit(PASSWD_ERROR)
 
-                            elif data.decode().endswith("SUCCESS"):
+                            elif data.decode().split(":")[1] == ("SUCCESS"):
+                                recvIP = data.decode().split(":")[2]
                                 self.logged = True
-                                self.try_logins = 5
-                                print("登录成功")
+                                self.tryLogins = 5
+                                print(recvIP + "登录成功")
                         else:
                             os.write(self.tfd, data)
-            # 删除timeout的连接
-            curTime = time.time()
-            clients_copy = deepcopy(self.clients)
-            for key in clients_copy:
-                if curTime - self.clients[key]["aliveTime"] > TIMEOUT:
-                    print("删除超时连接：", key)
-                    self.clients.pop(key)
+            if MODE == 1: # Server
+                # 删除timeout的连接
+                curTime = time.time()
+                clientsCopy = deepcopy(self.clients)
+                for key in clientsCopy:
+                    if curTime - self.clients[key]["aliveTime"] > TIMEOUT:
+                        print("删除超时连接：", key)
+                        print("回收ip", self.clients[key]["localIP"])
+                        dhcpd.removeUsedIP(self.clients[key]["localIP"])
+                        self.clients.pop(key)
+                        
 
+class DHCP():
+    ''' 分配ip给用户 '''
+    def __init__(self, IFACE_IP):
+        self.IPPool = IP(IFACE_IP)
+        #去掉网关，服务器和广播地址
+        self.usedIPList = [self.IPPool[0],self.IPPool[1],self.IPPool[-1]]
+
+    def addUsedIP(self, usdIP):
+        self.usedIPList.append(usdIP)
+
+    def removeUsedIP(self, unUsedIP):
+        self.usedIPList.remove(IP(unUsedIP))
+       
+    def assignIP(self):
+        resIP = [ip for ip in self.IPPool if ip not in self.usedIPList][0]
+        self.addUsedIP(resIP)
+        return resIP.strNormal()
+        
+        
 def usage(status = ARGS_ERROR):
     print("Usage: %s [-s port|-c serverip] [-h] [-l localip]" % (sys.argv[0]))
     sys.exit(status)
