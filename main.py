@@ -53,7 +53,7 @@ class Tunnel(object):
         if MODE == 1:
             ifConfig.config(IFACE_IP)
             self.udpfd.bind(("", PORT))
-            print("DHCP")
+            print("DHCP...")
             dhcpd = DHCP(IFACE_IP.replace('1/','0/'))
         else:
             self.udpfd.bind(("", 0))
@@ -89,7 +89,6 @@ class Tunnel(object):
                         key = src
                         if key not in self.clients: #如果第一次连接
                             localIP = dhcpd.assignIP()
-                            print(localIP)
                             try:
                                 
                                 if (data.decode().startswith("LOGIN:") and\
@@ -161,7 +160,6 @@ class Ifconfig(object):
             self.prev_gateway = defaults[0]
             self.prev_gateway_metric = self.prev_gateway + " metric 2"
             self.new_gateway = "default dev %s metric 1" % (self.tname)
-            print(self.new_gateway,"www")
             self.tun_gateway = self.prev_gateway.replace("default", IP)
             with open("/etc/resolv.conf", "rb") as fs:
                 self.old_dns = fs.read()
@@ -183,7 +181,6 @@ class Ifconfig(object):
         else: # Client
             print("\n恢复源路由...")
             os.system("ip route del " + self.new_gateway)
-            print(1)
             os.system("ip route del " + self.prev_gateway_metric)
             os.system("ip route del " + self.tun_gateway)
             os.system("ip route add " + self.prev_gateway)
