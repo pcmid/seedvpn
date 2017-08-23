@@ -1,7 +1,8 @@
 import rsa
 
 # 生成密钥
-(pubkey, privkey) = rsa.newkeys(1024)
+print("生成秘钥中...")
+(pubkey, privkey) = rsa.newkeys(2048)
 
 # 保存密钥
 with open('public.pem', 'w+') as f:
@@ -18,9 +19,10 @@ with open('private.pem', 'r') as f:
     privkey = rsa.PrivateKey.load_pkcs1(f.read().encode())
 
 # 明文
-message = 'hello'
+message = 'hellobdashdalsdjass'
 
 # 公钥加密
+print("加密")
 crypto = rsa.encrypt(message.encode(), pubkey)
 
 # 私钥解密
