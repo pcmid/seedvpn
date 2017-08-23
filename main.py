@@ -109,20 +109,21 @@ class Tunnel(object):
                             self.clients[key]["aliveTime"] = time.time()
 
                     else: # Client
-                        if data.decode().startswith("LOGIN"):
-                            if data.decode().endswith("PASSWORD"):
-                                self.logged = False
-                                print("登录密码错误！")
-                                sys.exit(PASSWD_ERROR)
+                        try :
+                            if data.decode().startswith("LOGIN"):
+                                if data.decode().endswith("PASSWORD"):
+                                    self.logged = False
+                                    print("登录密码错误！")
+                                    sys.exit(PASSWD_ERROR)
 
-                            elif data.decode().split(":")[1] == ("SUCCESS"):
-                                recvIP = data.decode().split(":")[2]
-                                self.logged = True
-                                self.tryLogins = 5
-                                print(recvIP + "登录成功")
-                                ifConfig.config(recvIP)
-                                ifConfig.configRoutes()
-                        else:
+                                elif data.decode().split(":")[1] == ("SUCCESS"):
+                                    recvIP = data.decode().split(":")[2]
+                                    self.logged = True
+                                    self.tryLogins = 5
+                                    print(recvIP + "登录成功")
+                                    ifConfig.config(recvIP)
+                                    ifConfig.configRoutes()
+                        except:
                             os.write(self.tfd, data)
             if MODE == 1: # Server
                 # 删除timeout的连接
