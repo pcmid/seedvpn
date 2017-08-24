@@ -182,13 +182,9 @@ class Tunnel(object):
                         print("回收ip", self.clients[key]["localIP"])
                         dhcpd.removeUsedIP(self.clients[key]["localIP"])
                         self.clients.pop(key)
-                        
 
-class Ifconfig(object):
-    def __init__(self,tname):
-        self.tname = tname
 
-    
+
 class DHCP():
     ''' 分配ip给用户 '''
     def __init__(self, IFACE_IP):
