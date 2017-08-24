@@ -3,6 +3,7 @@
 '''
     A Light UDP Tunnel VPN
     Author: sweet-st
+    Mail: foreverofsweet@gmail.com
     Updated: 2017-08-22
 '''
 
