@@ -47,11 +47,59 @@ class Tunnel(object):
     def close(self):
         os.close(self.tfd)
 
+    def config(self, ip):
+        print("配置网卡%s ip: %s" % (self.tname, ip))
+        os.system("ip link set %s up" % (self.tname))
+        os.system("ip link set %s mtu 1000" % (self.tname))
+        os.system("ip addr add %s dev %s" % (ip, self.tname))
+
+    def configRoutes(self):
+        if MODE == 1: # Server
+            pass
+        else: # Client
+            print("设置新路由...")
+            # 查找默认路由
+            routes = os.popen("ip route show").readlines()
+            defaults = [x.rstrip() for x in routes if x.startswith("default")]
+            if not defaults:
+                print("找不到默认路由，没有网络链接！")
+                sys.exit(NETWORK_ERROR)
+            self.prev_gateway = defaults[0]
+            self.prev_gateway_metric = self.prev_gateway + " metric 2"
+            self.new_gateway = "default dev %s metric 1" % (self.tname)
+            self.tun_gateway = self.prev_gateway.replace("default", IP)
+            with open("/etc/resolv.conf", "rb") as fs:
+                self.old_dns = fs.read()
+            # 删除默认路由
+            os.system("ip route del " + self.prev_gateway)
+            # 降低源路由metric等级
+            os.system("ip route add " + self.prev_gateway_metric)
+            # 为连接服务器添加的路由
+            os.system("ip route add " + self.tun_gateway)
+            # 添加默认路由
+            os.system("ip route add " + self.new_gateway)
+            # DNS
+            with open("/etc/resolv.conf", "w") as fs:
+                fs.write("nameserver 8.8.8.8")
+
+    def restoreRoutes(self):
+        if MODE == 1: # Server
+            pass
+        else: # Client
+            print("\n恢复源路由...")
+            os.system("ip route del " + self.new_gateway)
+            os.system("ip route del " + self.prev_gateway_metric)
+            os.system("ip route del " + self.tun_gateway)
+            os.system("ip route add " + self.prev_gateway)
+            with open("/etc/resolv.conf", "wb") as fs:
+                fs.write(self.old_dns)
+
+
     def run(self):
         global PORT
         self.udpfd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         if MODE == 1:
-            ifConfig.config(IFACE_IP)
+            self.config(IFACE_IP)
             self.udpfd.bind(("", PORT))
             print("DHCP...")
             dhcpd = DHCP(IFACE_IP.replace('1/','0/'))
@@ -120,8 +168,8 @@ class Tunnel(object):
                                     self.logged = True
                                     self.tryLogins = 5
                                     print(recvIP + "登录成功")
-                                    ifConfig.config(recvIP)
-                                    ifConfig.configRoutes()
+                                    self.config(recvIP)
+                                    self.configRoutes()
                         except:
                             os.write(self.tfd, data)
             if MODE == 1: # Server
@@ -140,53 +188,7 @@ class Ifconfig(object):
     def __init__(self,tname):
         self.tname = tname
 
-    def config(self, ip):
-        print("配置网卡%s ip: %s" % (self.tname, ip))
-        os.system("ip link set %s up" % (self.tname))
-        os.system("ip link set %s mtu 1000" % (self.tname))
-        os.system("ip addr add %s dev %s" % (ip, self.tname))
-
-    def configRoutes(self):
-        if MODE == 1: # Server
-            pass
-        else: # Client
-            print("设置新路由...")
-            # 查找默认路由
-            routes = os.popen("ip route show").readlines()
-            defaults = [x.rstrip() for x in routes if x.startswith("default")]
-            if not defaults:
-                print("找不到默认路由，没有网络链接！")
-                sys.exit(NETWORK_ERROR)
-            self.prev_gateway = defaults[0]
-            self.prev_gateway_metric = self.prev_gateway + " metric 2"
-            self.new_gateway = "default dev %s metric 1" % (self.tname)
-            self.tun_gateway = self.prev_gateway.replace("default", IP)
-            with open("/etc/resolv.conf", "rb") as fs:
-                self.old_dns = fs.read()
-            # 删除默认路由
-            os.system("ip route del " + self.prev_gateway)
-            # 降低源路由metric等级
-            os.system("ip route add " + self.prev_gateway_metric)
-            # 为连接服务器添加的路由
-            os.system("ip route add " + self.tun_gateway)
-            # 添加默认路由
-            os.system("ip route add " + self.new_gateway)
-            # DNS
-            with open("/etc/resolv.conf", "w") as fs:
-                fs.write("nameserver 8.8.8.8")
-
-    def restoreRoutes(self):
-        if MODE == 1: # Server
-            pass
-        else: # Client
-            print("\n恢复源路由...")
-            os.system("ip route del " + self.new_gateway)
-            os.system("ip route del " + self.prev_gateway_metric)
-            os.system("ip route del " + self.tun_gateway)
-            os.system("ip route add " + self.prev_gateway)
-            with open("/etc/resolv.conf", "wb") as fs:
-                fs.write(self.old_dns)
-
+    
 class DHCP():
     ''' 分配ip给用户 '''
     def __init__(self, IFACE_IP):
@@ -240,6 +242,6 @@ if __name__=="__main__":
     except:
         print(traceback.format_exc())
     finally:
-        ifConfig.restoreRoutes()
+        tun.restoreRoutes()
         tun.close()
         print("\nend")
