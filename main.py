@@ -35,7 +35,7 @@ DEBUG = 0
 PORT = 0
 IFACE_IP = "10.0.0.1/24"
 MTU = 1500
-TIMEOUT = 10 # seconds
+TIMEOUT = 10 * 60 # seconds
 
 class Tunnel(object):
     def create(self):
@@ -210,6 +210,9 @@ class DHCP():
 class Encrypt(object):
     '''加密和解密数据'''
     def __init__(self):
+        print("生成秘钥中...")
+        (self.pubkey, self.privkey) = rsa.newkeys(2048)
+
         pass
 
     def encrypt(self,data):
