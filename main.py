@@ -16,6 +16,7 @@ import struct
 import socket
 import select
 import traceback
+import rsa
 from copy import deepcopy
 from IPy import IP
 
@@ -23,9 +24,10 @@ PASSWORD = "test"
 ARGS_ERROR = 1
 NETWORK_ERROR = 2
 PASSWD_ERROR = 3
+LOGIN_TIMEOUT = 4
 
 TUNSETIFF = 0x400454ca
-IFF_TUN   = 0x0001
+IFF_TUN = 0x0001
 
 BUFFER_SIZE = 8192
 MODE = 0
@@ -103,7 +105,7 @@ class Tunnel(object):
             self.config(IFACE_IP)
             self.udpfd.bind(("", PORT))
             print("DHCP...")
-            dhcpd = DHCP(IFACE_IP.replace('1/','0/'))
+            dhcpd = DHCP(IFACE_IP.replace('1/', '0/'))
         else:
             self.udpfd.bind(("", 0))
 
@@ -111,14 +113,14 @@ class Tunnel(object):
         self.logged = False
         self.tryLogins = 5
         self.logTime = 0
-
         while True:
             if MODE == 2 and not self.logged and time.time() - self.logTime > 2.:
                 print("登录中...")
                 self.udpfd.sendto(("LOGIN:" + PASSWORD).encode(), (IP, PORT))
                 self.tryLogins -= 1
                 if self.tryLogins == 0:
-                    raise Exception("登录失败")
+                    print("登录失败")
+                    sys.exit(LOGIN_TIMEOUT)
                 self.logTime = time.time()
 
             rset = select.select([self.udpfd, self.tfd], [], [], 1)[0]
@@ -188,8 +190,8 @@ class Tunnel(object):
 
 class DHCP():
     ''' 分配ip给用户 '''
-    def __init__(self, IFACE_IP):
-        self.IPPool = IP(IFACE_IP)
+    def __init__(self,ip):
+        self.IPPool = IP(ip)
         #去掉网关，服务器和广播地址
         self.usedIPList = [self.IPPool[0],self.IPPool[1],self.IPPool[-1]]
 
@@ -203,8 +205,22 @@ class DHCP():
         resIP = [ip for ip in self.IPPool if ip not in self.usedIPList][0]
         self.addUsedIP(resIP)
         return resIP.strNormal()
-        
-        
+
+
+class Encrypt(object):
+    '''加密和解密数据'''
+    def __init__(self):
+        pass
+
+    def encrypt(self,data):
+        '''返回加密的密文'''
+        pass
+
+    def dencrypt(slef,data):
+        '''返回解密的数据'''
+        pass
+
+    def 
 def usage(status = ARGS_ERROR):
     print("Usage: %s [-s port|-c serverip] [-h] [-l localip]\n\n" % (sys.argv[0]))
     print("""           seedvpn  Copyright (C) 2017  sweet-st    
@@ -251,15 +267,11 @@ if __name__=="__main__":
 
     tun = Tunnel()
     tun.create()
-    if MODE == 1:
-        tun.config(IFACE_IP)
     try:
         tun.run()
     except KeyboardInterrupt:
-        pass
-    except:
         print(traceback.format_exc())
-    finally:
         tun.restoreRoutes()
         tun.close()
+    finally:
         print("\nend")
