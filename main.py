@@ -220,7 +220,8 @@ class Encrypt(object):
         '''返回解密的数据'''
         pass
 
-    def 
+
+
 def usage(status = ARGS_ERROR):
     print("Usage: %s [-s port|-c serverip] [-h] [-l localip]\n\n" % (sys.argv[0]))
     print("""           seedvpn  Copyright (C) 2017  sweet-st    
