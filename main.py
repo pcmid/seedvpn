@@ -1,4 +1,28 @@
 #!/usr/bin/env python3
+#coding=utf-8
+
+#           seedvpn  Copyright (C) 2017  sweet-st    
+#This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
+#This is free software, and you are welcome to redistribute it
+#under certain conditions; type `show c' for details.
+#
+#The hypothetical commands `show w' and `show c' should show the appropriate
+#parts of the General Public License.  Of course, your program's commands
+#might be different; for a GUI interface, you would use an "about box".
+#
+#  You should also get your employer (if you work as a programmer) or school,
+#if any, to sign a "copyright disclaimer" for the program, if necessary.
+#For more information on this, and how to apply and follow the GNU GPL, see
+#<http://www.gnu.org/licenses/>.
+#
+#  The GNU General Public License does not permit incorporating your program
+#into proprietary programs.  If your program is a subroutine library, you
+#may consider it more useful to permit linking proprietary applications with
+#the library.  If this is what you want to do, use the GNU Lesser General
+#Public License instead of this License.  But first, please read
+#<http://www.gnu.org/philosophy/why-not-lgpl.html>.
+
+
 
 '''
     A Light UDP Tunnel VPN
@@ -17,8 +41,10 @@ import socket
 import select
 import traceback
 import rsa
+import configparser
 from copy import deepcopy
 from IPy import IP
+import daemon
 
 PASSWORD = "test"
 ARGS_ERROR = 1
@@ -30,7 +56,7 @@ TUNSETIFF = 0x400454ca
 IFF_TUN = 0x0001
 
 BUFFER_SIZE = 8192
-MODE = 0
+is_server = 2
 DEBUG = 0
 PORT = 0
 IFACE_IP = "10.0.0.1/24"
@@ -43,7 +69,7 @@ class Tunnel(object):
             self.tfd = os.open("/dev/net/tun", os.O_RDWR)
         except:
             self.tfd = os.open("/dev/tun", os.O_RDWR)
-        ifs = fcntl.ioctl(self.tfd, TUNSETIFF, struct.pack("16sH", "t%d".encode("utf-8"), IFF_TUN))
+        ifs = fcntl.ioctl(self.tfd, TUNSETIFF, struct.pack("16sH", "tun%d".encode("utf-8"), IFF_TUN))
         dev, _ = struct.unpack("16sH", ifs)
         self.tname = dev.strip(b"\x00").decode()
 
@@ -57,7 +83,7 @@ class Tunnel(object):
         os.system("ip addr add %s dev %s" % (ip, self.tname))
 
     def configRoutes(self):
-        if MODE == 1: # Server
+        if is_server: # Server
             pass
         else: # Client
             print("设置新路由...")
@@ -86,7 +112,7 @@ class Tunnel(object):
                 fs.write("nameserver 8.8.8.8")
 
     def restoreRoutes(self):
-        if MODE == 1: # Server
+        if is_server: # Server
             pass
         else: # Client
             print("\n恢复源路由...")
@@ -101,7 +127,7 @@ class Tunnel(object):
     def run(self):
         global PORT
         self.udpfd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        if MODE == 1:
+        if is_server:
             self.config(IFACE_IP)
             self.udpfd.bind(("", PORT))
             print("DHCP...")
@@ -114,8 +140,9 @@ class Tunnel(object):
         self.tryLogins = 5
         self.logTime = 0
         while True:
-            if MODE == 2 and not self.logged and time.time() - self.logTime > 2.:
+            if not is_server and not self.logged and time.time() - self.logTime > 2:
                 print("登录中...")
+                print(type(("LOGIN:" + PASSWORD).encode()))
                 self.udpfd.sendto(("LOGIN:" + PASSWORD).encode(), (IP, PORT))
                 self.tryLogins -= 1
                 if self.tryLogins == 0:
@@ -127,7 +154,7 @@ class Tunnel(object):
             for r in rset:
                 if r == self.tfd:
                     data = os.read(self.tfd, MTU)
-                    if MODE == 1: # Server
+                    if is_server: # Server
                         src, dst = data[16:20], data[20:24]
                         for key in self.clients:
                             if dst == self.clients[key]["localIPn"]:
@@ -136,16 +163,14 @@ class Tunnel(object):
                         self.udpfd.sendto(data, (IP, PORT))
                 elif r == self.udpfd:
                     data, src = self.udpfd.recvfrom(BUFFER_SIZE)
-                    if MODE == 1: # Server
+                    if is_server: # Server
                         key = src
-                        if key not in self.clients: #如果第一次连接
-                            localIP = dhcpd.assignIP()
+                        if key not in self.clients:
+                            #如果第一次连接
                             try:
-                                
-                                if (data.decode().startswith("LOGIN:") and\
-                                    data.decode().split(":")[1]) == PASSWORD:
+                                if (data.decode().startswith("LOGIN:") and data.decode().split(":")[1]) == PASSWORD:
                                     #localIP = data.decode().split(":")[2]
-                                    
+                                    localIP = dhcpd.assignIP()
                                     self.clients[key] = {"aliveTime": time.time(),
                                                         "localIP": localIP,
                                                         "localIPn": socket.inet_aton(localIP)}
@@ -175,7 +200,7 @@ class Tunnel(object):
                                     self.configRoutes()
                         except:
                             os.write(self.tfd, data)
-            if MODE == 1: # Server
+            if is_server: # Server
                 # 删除timeout的连接
                 curTime = time.time()
                 clientsCopy = deepcopy(self.clients)
@@ -219,54 +244,69 @@ class Encrypt(object):
         '''返回加密的密文'''
         pass
 
-    def dencrypt(slef,data):
+    def dencrypt(self,data):
         '''返回解密的数据'''
         pass
 
 
 
-def usage(status = ARGS_ERROR):
-    print("Usage: %s [-s port|-c serverip] [-h] [-l localip]\n\n" % (sys.argv[0]))
-    print("""           seedvpn  Copyright (C) 2017  sweet-st    
-This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
-This is free software, and you are welcome to redistribute it
-under certain conditions; type `show c' for details.
-
-The hypothetical commands `show w' and `show c' should show the appropriate
-parts of the General Public License.  Of course, your program's commands
-might be different; for a GUI interface, you would use an "about box".
-
-  You should also get your employer (if you work as a programmer) or school,
-if any, to sign a "copyright disclaimer" for the program, if necessary.
-For more information on this, and how to apply and follow the GNU GPL, see
-<http://www.gnu.org/licenses/>.
-
-  The GNU General Public License does not permit incorporating your program
-into proprietary programs.  If your program is a subroutine library, you
-may consider it more useful to permit linking proprietary applications with
-the library.  If this is what you want to do, use the GNU Lesser General
-Public License instead of this License.  But first, please read
-<http://www.gnu.org/philosophy/why-not-lgpl.html>.""")
+def usage(status):
+    print("Usage: %s [-h] --config config path\n\n" % (sys.argv[0]))
+    print(status)
     sys.exit(status)
 
 
-if __name__=="__main__":
-    opts = getopt.getopt(sys.argv[1:],"s:c:l:hd")
-    for opt,optarg in opts[0]:
-        if opt == "-h":
-            usage(0)
-        elif opt == "-s":
-            MODE = 1
-            PORT = int(optarg)
-        elif opt == "-c":
-            MODE = 2
-            IP, PORT = optarg.split(":")
-            IP = socket.gethostbyname(IP)
-            PORT = int(PORT)
-        elif opt == "-l":
-            IFACE_IP = optarg
 
-    if MODE == 0 or PORT == 0:
+def parserConfig(configPath):
+    '''解析conf文件
+    return：
+        client：服务器IP和port
+        server：tun's ip port
+    '''
+    global is_server
+    try:
+        open(configPath, "r")
+    except IOError as e:
+        print(e.strerror)
+        sys.exit(e.errno)
+
+    config = configparser.ConfigParser()
+    config.read(configPath)
+
+    secs = config.sections()
+    if ("client" in secs and "server" in secs) or \
+        ("client" not in secs and "server" not in secs):
+        raise Exception("配置文件错误：配置只能选择client或server")
+
+    if "server" in secs:
+        is_server = 1
+        tun_IFACE = config.get("server", "tun_IFACE")
+        port = config.get("server", "port")
+        return tun_IFACE, int(port)
+
+    if "client" in secs:
+        is_server = 0
+        addr = config.get("client", "addr")
+        port = config.get("client", "port")
+        return addr, int(port)
+
+
+if __name__=="__main__":
+    try:
+        opts, _ = getopt.getopt(sys.argv[1:], "h", "config=")
+        for name, value in opts:
+            if name == "-h":
+                usage(0)
+                sys.exit()
+            if name == "--config":
+                config = value
+    except getopt.GetoptError:
+        print("必须指定 --config参数")
+        usage(ARGS_ERROR)
+
+    IFACE_IP, PORT = parserConfig(config)
+    #daemon.daemon()
+    if is_server == 2 or PORT == 0:
         usage(0)
 
     tun = Tunnel()
