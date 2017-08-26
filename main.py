@@ -51,8 +51,10 @@ NETWORK_ERROR = 2
 PASSWD_ERROR = 3
 LOGIN_TIMEOUT = 4
 
+
 TUNSETIFF = 0x400454ca
 IFF_TUN = 0x0001
+
 
 BUFFER_SIZE = 8192
 is_server = 2
@@ -62,8 +64,14 @@ IFACE_IP = "10.0.0.1/24"
 MTU = 1500
 TIMEOUT = 10 * 60  # seconds
 
-
+def is_set(value):
+    try:
+        value
+    except:
+        return None
+    return True
 class Tunnel(object):
+
     def create(self):
         try:
             self.tfd = os.open("/dev/net/tun", os.O_RDWR)
@@ -78,22 +86,22 @@ class Tunnel(object):
         os.close(self.tfd)
 
     def config(self, ip):
-        print("配置网卡%s ip: %s" % (self.tname, ip))
+        print("ip link set %s up" % (self.tname))
         os.system("ip link set %s up" % (self.tname))
         os.system("ip link set %s mtu 1000" % (self.tname))
+        print("ip link set %s mtu 1000" % (self.tname))
         os.system("ip addr add %s dev %s" % (ip, self.tname))
+        print("ip addr add %s dev %s" % (ip, self.tname))
 
     def configRoutes(self):
-        if is_server:  # Server
-            pass
-        else:  # Client
-            print("设置新路由...")
-            # 查找默认路由
-            routes = os.popen("ip route show").readlines()
-            defaults = [x.rstrip() for x in routes if x.startswith("default")]
-            if not defaults:
-                print("找不到默认路由，没有网络链接！")
-                sys.exit(NETWORK_ERROR)
+        print("设置新路由...")
+        # 查找默认路由
+        routes = os.popen("ip route show").readlines()
+        defaults = [x.rstrip() for x in routes if x.startswith("default")]
+        if not defaults:
+            print("找不到默认路由，没有网络链接！")
+            sys.exit(NETWORK_ERROR)
+        if is_set(self.prev_gateway):
             self.prev_gateway = defaults[0]
             self.prev_gateway_metric = self.prev_gateway + " metric 2"
             self.new_gateway = "default dev %s metric 1" % (self.tname)
@@ -116,22 +124,21 @@ class Tunnel(object):
             with open("/etc/resolv.conf", "w") as fs:
                 fs.write("nameserver 8.8.8.8")
             print("设置完成")
+        else:
+            print("重新连接...")
 
     def restoreRoutes(self):
-        if is_server:  # Server
-            pass
-        else:  # Client
-            print("\n恢复源路由...")
-            os.system("ip route del " + self.new_gateway)
-            print("ip route del " + self.new_gateway)
-            os.system("ip route del " + self.prev_gateway_metric)
-            print("ip route del " + self.prev_gateway_metric)
-            os.system("ip route del " + self.tun_gateway)
-            print("ip route add " + self.prev_gateway)
-            os.system("ip route add " + self.prev_gateway)
-            with open("/etc/resolv.conf", "wb") as fs:
-                fs.write(self.old_dns)
-            print("恢复完成")
+        print("\n恢复源路由...")
+        os.system("ip route del " + self.new_gateway)
+        print("ip route del " + self.new_gateway)
+        os.system("ip route del " + self.prev_gateway_metric)
+        print("ip route del " + self.prev_gateway_metric)
+        os.system("ip route del " + self.tun_gateway)
+        print("ip route add " + self.prev_gateway)
+        os.system("ip route add " + self.prev_gateway)
+        with open("/etc/resolv.conf", "wb") as fs:
+            fs.write(self.old_dns)
+        print("恢复完成")
 
     def run(self):
         global IFACE_IP, PORT
@@ -155,14 +162,11 @@ class Tunnel(object):
                     time.time() - self.logTime > 2:
 
                 print("登录中...")
-                print(type(("LOGIN:" + PASSWORD).encode()))
-                print(PORT)
                 self.udpfd.sendto(
                     ("LOGIN:" + PASSWORD).encode(), (self.server_ip, PORT))
                 self.tryLogins -= 1
                 if self.tryLogins == 0:
-                    print("登录失败")
-                    sys.exit(LOGIN_TIMEOUT)
+                    print("连接失败")
                 self.logTime = time.time()
 
             rset = select.select([self.udpfd, self.tfd], [], [], 1)[0]
@@ -202,8 +206,7 @@ class Tunnel(object):
                                          ":" +
                                          localIP +
                                          "/" +
-                                         IFACE_IP.split("/")[1] +
-                                         "/" +
+                                         IFACE_IP.split("/")[1]
                                          ).encode(),
                                         src)
                             except:
@@ -219,16 +222,13 @@ class Tunnel(object):
                             if data.decode().startswith("LOGIN"):
                                 if data.decode().endswith("PASSWORD"):
                                     self.logged = False
-                                    print("登录密码错误！")
-                                    sys.exit(PASSWD_ERROR)
-
+                                    print("连接失败！")
                                 elif data.decode().split(":")[1] == (
                                         "SUCCESS"):
                                     recvIP = data.decode().split(":")[2]
                                     self.logged = True
                                     self.tryLogins = 5
-                                    print(recvIP + "登录成功")
-                                    self.
+                                    print("登录成功\n" + "IP: " + recvIP)
                                     self.config(recvIP)
                                     self.configRoutes()
                         except:
@@ -342,7 +342,7 @@ if __name__ == "__main__":
         usage(ARGS_ERROR)
 
     IFACE_IP, PORT, KEY = parserConfig(config)
-    # daemon.daemon()
+    #daemon.daemon()
     if is_server == 2 or PORT == 0:
         usage(0)
 
