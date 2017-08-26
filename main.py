@@ -64,12 +64,15 @@ IFACE_IP = "10.0.0.1/24"
 MTU = 1500
 TIMEOUT = 10 * 60  # seconds
 
+
 def is_set(value):
     try:
         value
     except:
         return None
     return True
+
+
 class Tunnel(object):
 
     def create(self):
@@ -342,7 +345,7 @@ if __name__ == "__main__":
         usage(ARGS_ERROR)
 
     IFACE_IP, PORT, KEY = parserConfig(config)
-    #daemon.daemon()
+    # daemon.daemon()
     if is_server == 2 or PORT == 0:
         usage(0)
 
