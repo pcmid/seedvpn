@@ -1,10 +1,11 @@
 import rsa
-
+import base64
 # 生成密钥
-print("生成秘钥中...")
-(pubkey, privkey) = rsa.newkeys(2048)
+# print("生成秘钥中...")
+(pubkey, privkey) = rsa.newkeys(256)
 
 # 保存密钥
+
 with open("public.pem", "w+") as f:
     f.write(pubkey.save_pkcs1().decode())
 
@@ -18,13 +19,14 @@ with open("public.pem", "r") as f:
 with open("private.pem", "r") as f:
     privkey = rsa.PrivateKey.load_pkcs1(f.read().encode())
 
+
 # 明文
-message = "hellobdashdalsdjass"
+message = "hello"
 
 # 公钥加密
 print("加密")
 crypto = rsa.encrypt(message.encode(), pubkey)
-
+print(crypto)
 # 私钥解密
 message = rsa.decrypt(crypto, privkey).decode()
 print(message)
