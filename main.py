@@ -174,7 +174,7 @@ class Tunnel(object):
             for r in rset:
                 if r == self.tfd:
                     data = os.read(self.tfd, MTU)
-                    data = str(pc.decrypt(data))
+                    data = pc.decrypt(data)
                     if is_server and (data != "-1"):  # Server
                         src, dst = data[16:20], data[20:24]
                         for key in self.clients:
@@ -222,7 +222,7 @@ class Tunnel(object):
                                 self.udpfd.sendto(
                                     pc.encrypt("LOGIN:PASSWORD"), src)
                         else:
-                            os.write(self.tfd, pc.encrypt(data))
+                            os.write(self.tfd, data)
                             self.clients[key]["aliveTime"] = time.time()
 
                     else:  # Client
@@ -240,7 +240,7 @@ class Tunnel(object):
                                     self.config(recvIP)
                                     self.configRoutes()
                         except:
-                            os.write(self.tfd, pc.encrypt(data))
+                            os.write(self.tfd, data)
             if is_server:  # Server
                 # 删除timeout的连接
                 curTime = time.time()
@@ -336,7 +336,10 @@ class AES_Encrypt(object):
         #print("解密" + str(len(text)))
         if len(text) % 16 == 0:
             plain_text = cryptor.decrypt(text)
-            return plain_text.rstrip(b'\0').decode()
+            try:
+                return plain_text.rstrip(b'\0').decode()
+            else:
+                return plain_text.rstrip(b'\0')
         else:
             logging.debug("解密无效")
             return "-1"
@@ -411,7 +414,7 @@ if __name__ == "__main__":
     tun.create()
     try:
         tun.run()
-    except KeyboardInterrupt:
+    except:
         try:
             # print(traceback.format_exc())
             tun.restoreRoutes()
