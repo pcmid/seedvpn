@@ -24,7 +24,7 @@ python3 main.py --config client.conf
 ### 配置文件
 
 服务端：
-
+```Bash
 [server]                            # 指定此配置文件为服务端
 
 tun_IFACE = 10.10.0.1/24            # 虚拟网卡IP段
@@ -32,9 +32,10 @@ tun_IFACE = 10.10.0.1/24            # 虚拟网卡IP段
 port = 1198                         # 服务监听端口
 
 password = qwert                    # 密码
+```
 
 客户端
-
+```Bash
 [client]                            # 指定此配置文件为客户端
 
 addr = 127.0.0.1                    # 服务器ip地址
@@ -42,3 +43,4 @@ addr = 127.0.0.1                    # 服务器ip地址
 port = 1198                         # 服务器监听端口
 
 password = qwert                    # 密码
+```
