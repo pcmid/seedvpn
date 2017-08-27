@@ -402,8 +402,8 @@ if __name__ == "__main__":
         usage(ARGS_ERROR)
 
     IFACE_IP, PORT, PASSWORD = parserConfig(config)
-    # if is_server:
-    #    daemon.daemon()
+    if is_server:
+        daemon.daemon()
     if is_server == 2 or PORT == 0:
         usage(0)
 
