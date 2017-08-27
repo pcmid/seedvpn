@@ -65,7 +65,7 @@ IFACE_IP = "10.0.0.1/24"
 MTU = 1500
 TIMEOUT = 10 * 60  # seconds
 
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%H:%M:%S %a, %d %b %Y')
 
@@ -174,17 +174,15 @@ class Tunnel(object):
             for r in rset:
                 if r == self.tfd:
                     data = os.read(self.tfd, MTU)
-                    data = pc.decrypt(data)
-                    if is_server and (data != "-1"):  # Server
+                    if is_server:  # Server
                         src, dst = data[16:20], data[20:24]
                         for key in self.clients:
                             if dst == self.clients[key]["localIPn"]:
                                 self.udpfd.sendto(pc.encrypt(data), key)
-                    elif data != "-1":  # Client
+                    else:  # Client
                         self.udpfd.sendto(pc.encrypt(data), (
                             self.server_ip, PORT))
-                    else:
-                        pass
+
                 elif r == self.udpfd:
                     data, src = self.udpfd.recvfrom(BUFFER_SIZE)
                     data = pc.decrypt(data)
@@ -318,16 +316,22 @@ class AES_Encrypt(object):
         if count < length:
             add = (length - count)
             #\0 backspace
-            text = text + ('\0' * add)
+            if isinstance(text, str):
+                text = text + ('\0' * add)
+            elif isinstance(text, bytes):
+                text = text + (b'\0' * add)
         elif count > length:
             add = (length - (count % length))
-            text = text + ('\0' * add)
-        #print("加密" + str(len(text)))
+            if isinstance(text, str):
+                text = text + ('\0' * add)
+            elif isinstance(text, bytes):
+                text = text + (b'\0' * add)
         if len(text) % 16 == 0:
             self.ciphertext = cryptor.encrypt(text)
             return self.ciphertext
         else:
-            logging.debug("加密无效")
+            logging.debug("长度无效")
+            logging.debug("数据为 %s" % (text))
             return "-1"
 
     # 解密后，去掉补足的空格用strip() 去掉
@@ -338,7 +342,7 @@ class AES_Encrypt(object):
             plain_text = cryptor.decrypt(text)
             try:
                 return plain_text.rstrip(b'\0').decode()
-            except:
+            except UnicodeDecodeError:
                 return plain_text.rstrip(b'\0')
         else:
             logging.debug("解密无效")
@@ -405,8 +409,8 @@ if __name__ == "__main__":
         usage(ARGS_ERROR)
 
     IFACE_IP, PORT, PASSWORD = parserConfig(config)
-    if is_server:
-        daemon.daemon()
+    # if is_server:
+    #    daemon.daemon()
     if is_server == 2 or PORT == 0:
         usage(0)
 
@@ -414,7 +418,7 @@ if __name__ == "__main__":
     tun.create()
     try:
         tun.run()
-    except:
+    except KeyboardInterrupt:
         try:
             # print(traceback.format_exc())
             tun.restoreRoutes()
