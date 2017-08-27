@@ -38,10 +38,10 @@ import time
 import struct
 import socket
 import select
-import traceback
-import rsa
+import logging
 import configparser
 from copy import deepcopy
+import rsa
 from IPy import IP
 import daemon
 
@@ -62,15 +62,11 @@ is_server = 2
 PORT = 0
 IFACE_IP = "10.0.0.1/24"
 MTU = 1500
-TIMEOUT = 10 * 60  # seconds
+TIMEOUT = 5  # 10 * 60  # seconds
 
-
-def is_set(value):
-    try:
-        value
-    except:
-        return None
-    return True
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s [line:%(lineno)d] %(levelname)s: %(message)s',
+                    datefmt='%H:%M:%S %a, %d %b %Y')
 
 
 class Tunnel(object):
@@ -89,59 +85,57 @@ class Tunnel(object):
         os.close(self.tfd)
 
     def config(self, ip):
-        print("ip link set %s up" % (self.tname))
         os.system("ip link set %s up" % (self.tname))
+        logging.info("ip link set %s up" % (self.tname))
         os.system("ip link set %s mtu 1000" % (self.tname))
-        print("ip link set %s mtu 1000" % (self.tname))
+        logging.info("ip link set %s mtu 1000" % (self.tname))
         os.system("ip addr add %s dev %s" % (ip, self.tname))
-        print("ip addr add %s dev %s" % (ip, self.tname))
+        logging.info("ip addr add %s dev %s" % (ip, self.tname))
 
     def configRoutes(self):
-        print("设置新路由...")
+        logging.info("设置新路由...")
         # 查找默认路由
         routes = os.popen("ip route show").readlines()
         defaults = [x.rstrip() for x in routes if x.startswith("default")]
         if not defaults:
-            print("找不到默认路由，没有网络链接！")
+            logging.error("找不到默认路由，没有网络链接！")
             sys.exit(NETWORK_ERROR)
-        if is_set(self.prev_gateway):
-            self.prev_gateway = defaults[0]
-            self.prev_gateway_metric = self.prev_gateway + " metric 2"
-            self.new_gateway = "default dev %s metric 1" % (self.tname)
-            self.tun_gateway = self.prev_gateway.replace(
-                "default", self.server_ip)
-            with open("/etc/resolv.conf", "rb") as fs:
-                self.old_dns = fs.read()
-            # 删除默认路由
-            os.system("ip route del " + self.prev_gateway)
-            print("ip route del " + self.prev_gateway)
-            # 降低源路由metric等级
-            os.system("ip route add " + self.prev_gateway_metric)
-            # 为连接服务器添加的路由
-            print("ip route add " + self.tun_gateway)
-            os.system("ip route add " + self.tun_gateway)
-            # 添加默认路由
-            print("ip route add " + self.new_gateway)
-            os.system("ip route add " + self.new_gateway)
-            # DNS
-            with open("/etc/resolv.conf", "w") as fs:
-                fs.write("nameserver 8.8.8.8")
-            print("设置完成")
-        else:
-            print("重新连接...")
+
+        self.prev_gateway = defaults[0]
+        self.prev_gateway_metric = self.prev_gateway + " metric 2"
+        self.new_gateway = "default dev %s metric 1" % (self.tname)
+        self.tun_gateway = self.prev_gateway.replace(
+            "default", self.server_ip)
+        with open("/etc/resolv.conf", "rb") as fs:
+            self.old_dns = fs.read()
+        # 删除默认路由
+        os.system("ip route del " + self.prev_gateway)
+        logging.info("ip route del " + self.prev_gateway)
+        # 降低源路由metric等级
+        os.system("ip route add " + self.prev_gateway_metric)
+        # 为连接服务器添加的路由
+        logging.info("ip route add " + self.tun_gateway)
+        os.system("ip route add " + self.tun_gateway)
+        # 添加默认路由
+        logging.info("ip route add " + self.new_gateway)
+        os.system("ip route add " + self.new_gateway)
+        # DNS
+        with open("/etc/resolv.conf", "w") as fs:
+            fs.write("nameserver 8.8.8.8")
+        logging.info("设置完成")
 
     def restoreRoutes(self):
-        print("\n恢复源路由...")
+        logging.info("恢复源路由...")
         os.system("ip route del " + self.new_gateway)
-        print("ip route del " + self.new_gateway)
+        logging.info("ip route del " + self.new_gateway)
         os.system("ip route del " + self.prev_gateway_metric)
-        print("ip route del " + self.prev_gateway_metric)
+        logging.info("ip route del " + self.prev_gateway_metric)
         os.system("ip route del " + self.tun_gateway)
-        print("ip route add " + self.prev_gateway)
+        logging.info("ip route add " + self.prev_gateway)
         os.system("ip route add " + self.prev_gateway)
         with open("/etc/resolv.conf", "wb") as fs:
             fs.write(self.old_dns)
-        print("恢复完成")
+        logging.info("恢复完成")
 
     def run(self):
         global IFACE_IP, PORT
@@ -149,7 +143,7 @@ class Tunnel(object):
         if is_server:
             self.config(IFACE_IP)
             self.udpfd.bind(("", PORT))
-            print("DHCP...")
+            logging.info("DHCP...")
             dhcpd = DHCP(IFACE_IP.replace('1/', '0/'))
         else:
             self.server_ip = socket.gethostbyname(IFACE_IP)
@@ -164,12 +158,12 @@ class Tunnel(object):
                     not self.logged and\
                     time.time() - self.logTime > 2:
 
-                print("登录中...")
+                logging.info("登录中...")
                 self.udpfd.sendto(
                     ("LOGIN:" + PASSWORD).encode(), (self.server_ip, PORT))
                 self.tryLogins -= 1
                 if self.tryLogins == 0:
-                    print("连接失败")
+                    logging.warning("连接失败")
                 self.logTime = time.time()
 
             rset = select.select([self.udpfd, self.tfd], [], [], 1)[0]
@@ -203,7 +197,9 @@ class Tunnel(object):
                                                          socket.inet_aton(
                                                              localIP)
                                                          }
-                                    print("新连接：", src, "IP：", localIP)
+                                    #logging.info("新连接：", src, "IP：", localIP)
+                                    logging.info("新连接：%s  IP：%s"
+                                                 % (src, localIP))
                                     self.udpfd.sendto(
                                         ("LOGIN:SUCCESS" +
                                          ":" +
@@ -213,7 +209,7 @@ class Tunnel(object):
                                          ).encode(),
                                         src)
                             except:
-                                print("来自", src, "的连接密码无效")
+                                logging.info("来自 %s 的连接密码无效" % (src,))
                                 self.udpfd.sendto(
                                     "LOGIN:PASSWORD".encode(), src)
                         else:
@@ -225,13 +221,13 @@ class Tunnel(object):
                             if data.decode().startswith("LOGIN"):
                                 if data.decode().endswith("PASSWORD"):
                                     self.logged = False
-                                    print("连接失败！")
+                                    logging.error("连接失败！")
                                 elif data.decode().split(":")[1] == (
                                         "SUCCESS"):
                                     recvIP = data.decode().split(":")[2]
                                     self.logged = True
                                     self.tryLogins = 5
-                                    print("登录成功\n" + "IP: " + recvIP)
+                                    logging.info("登录成功\nIP: %s" % (recvIP,))
                                     self.config(recvIP)
                                     self.configRoutes()
                         except:
@@ -242,8 +238,9 @@ class Tunnel(object):
                 clientsCopy = deepcopy(self.clients)
                 for key in clientsCopy:
                     if curTime - self.clients[key]["aliveTime"] > TIMEOUT:
-                        print("删除超时连接：", key)
-                        print("回收ip", self.clients[key]["localIP"])
+                        logging.info("删除超时连接：%s" % (key,))
+                        logging.info("回收ip %s" %
+                                     (self.clients[key]["localIP"]))
                         dhcpd.removeUsedIP(self.clients[key]["localIP"])
                         self.clients.pop(key)
 
