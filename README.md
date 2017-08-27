@@ -5,15 +5,16 @@ seedvpn
 ----------
 
 服务端 
-'''Bash
+```Bash
 python3 main.py --config server.conf
-'''\<br>
-客户端
-'''Bash
-python3 main.py --config client.conf
-'''
+```
 
-'目前采用AES-128加密'
+客户端
+```Bash
+python3 main.py --config client.conf
+```
+
+`目前采用AES-128加密`
 
 # 配置文件
 
