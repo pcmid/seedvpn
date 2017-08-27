@@ -16,7 +16,7 @@ class prpcrypt():
     # 加密函数，如果text不足16位就用空格补足为16位，
     # 如果大于16当时不是16的倍数，那就补足为16的倍数。
     def encrypt(self, text):
-        cryptor = AES.new(self.key, self.mode, b"0000000000000000")
+        cryptor = AES.new(self.key, self.mode, b"0"*16)
         # 这里密钥key 长度必须为16（AES-128）,
         # 24（AES-192）,或者32 （AES-256）Bytes 长度
         # 目前AES-128 足够目前使用
@@ -36,14 +36,13 @@ class prpcrypt():
 
     # 解密后，去掉补足的空格用strip() 去掉
     def decrypt(self, text):
-        cryptor = AES.new(self.key, self.mode, b"0000000000000000")
+        cryptor = AES.new(self.key, self.mode, b"0"*16)
         plain_text = cryptor.decrypt(a2b_hex(text))
         return plain_text.rstrip(b"\0")
 
 
 if __name__ == "__main__":
     pc = prpcrypt("keyskeyskeyskeys")  # 初始化密钥
-    import sys
     e = pc.encrypt("test")  # 加密
     d = pc.decrypt(e)  # 解密
     print("加密:", e)
