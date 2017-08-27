@@ -65,7 +65,7 @@ IFACE_IP = "10.0.0.1/24"
 MTU = 1500
 TIMEOUT = 10 * 60  # seconds
 
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%H:%M:%S %a, %d %b %Y')
 
@@ -174,6 +174,7 @@ class Tunnel(object):
             for r in rset:
                 if r == self.tfd:
                     data = os.read(self.tfd, MTU)
+                    logging.debug("网卡收到数据 %s" % (data))
                     if is_server:  # Server
                         src, dst = data[16:20], data[20:24]
                         for key in self.clients:
@@ -238,6 +239,7 @@ class Tunnel(object):
                                     self.config(recvIP)
                                     self.configRoutes()
                         except:
+                            logging.debug("套接字收到数据 %s" %(data))
                             os.write(self.tfd, data)
             if is_server:  # Server
                 # 删除timeout的连接
