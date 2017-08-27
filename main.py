@@ -270,12 +270,10 @@ class Encrypt(object):
 
     def __init__(self):
         if is_server:
-            with open("private.pem", "r") as f:
-                privkey = rsa.PrivateKey.load_pkcs1(f.read().encode())
+            pass
 
         else:
-            with open("public.pem", "r") as f:
-                pubkey = rsa.PublicKey.load_pkcs1(f.read().encode())
+            pass
 
     def encrypt(self, data):
         '''返回加密的密文'''
