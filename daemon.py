@@ -3,7 +3,6 @@
 import os
 import sys
 import logging
-import config
 
 def daemon():
     try:
