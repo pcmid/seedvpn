@@ -20,13 +20,13 @@ python3 main.py --config client.conf
 
 服务端：
 
-[server] \t\t\t\t\t# 指定此配置文件为服务端
+[server] # 指定此配置文件为服务端
 
-tun_IFACE = 10.10.0.1/24 \t\t\t# 虚拟网卡IP段
+tun_IFACE = 10.10.0.1/24 # 虚拟网卡IP段
 
-port = 1198 \t\t\t\t\t\# 服务监听端口
+port = 1198 # 服务监听端口
 
-password = qwert \t\t\t\t\t# 密码
+password = qwert # 密码
 
 客户端
 
