@@ -19,7 +19,9 @@ python3 main.py --config client.conf
 ##TODO
 * 客户端的心跳包以及重连
 * 握手用aes加，数据用rsa加密
+* 更改deamon的处理方式
 * 等等
+
 ##配置文件
 
 服务端：
