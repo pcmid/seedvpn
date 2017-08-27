@@ -338,11 +338,12 @@ if __name__ == "__main__":
             if name == "--config":
                 config = value
     except getopt.GetoptError:
-        print("必须指定 --config参数")
+        logging.error("必须指定 --config参数")
         usage(ARGS_ERROR)
 
     IFACE_IP, PORT, KEY = parserConfig(config)
-    # daemon.daemon()
+    if is_server:
+        daemon.daemon()
     if is_server == 2 or PORT == 0:
         usage(0)
 
