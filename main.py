@@ -63,7 +63,7 @@ is_server = 2
 PORT = 0
 IFACE_IP = "10.0.0.1/24"
 MTU = 1500
-TIMEOUT = 5  # 10 * 60  # seconds
+TIMEOUT = 10 * 60  # seconds
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s: %(message)s',
