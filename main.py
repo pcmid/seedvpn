@@ -338,7 +338,7 @@ class AES_Encrypt(object):
             plain_text = cryptor.decrypt(text)
             try:
                 return plain_text.rstrip(b'\0').decode()
-            else:
+            except:
                 return plain_text.rstrip(b'\0')
         else:
             logging.debug("解密无效")
