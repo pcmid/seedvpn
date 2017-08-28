@@ -20,7 +20,7 @@
 # may consider it more useful to permit linking proprietary applications with
 # the library.  If this is what you want to do, use the GNU Lesser General
 # Public License instead of this License.  But first, please read
-#<http://www.gnu.org/philosophy/why-not-lgpl.html>.
+#<http://www.gnu.org/philosophy/why-not-lgpl.html>. 
 
 
 '''
@@ -176,7 +176,7 @@ class Tunnel(object):
                 if r == self.tfd:
                     data = os.read(self.tfd, MTU)
                     # logging.debug("网卡收到数据 %s" % (data))
-                    # logging.debug("socket收到长：%d" % (len(data)))
+                    # logging.debug("网卡收到长度：%d" % (len(data)))
                     if is_server:  # Server
                         src, dst = data[16:20], data[20:24]
                         for key in self.clients:
@@ -192,7 +192,7 @@ class Tunnel(object):
                 elif r == self.udpfd:
                     data, src = self.udpfd.recvfrom(BUFFER_SIZE)
                     data = pc.decrypt(data)
-                    # logging.debug("收到数据 %s" % (data))
+                    # logging.debug("socket收到数据 %s" % (data))
                     if is_server:  # Server
                         key = src
                         if key not in self.clients:
@@ -202,7 +202,6 @@ class Tunnel(object):
                                 if (data.startswith("LOGIN:") and
                                     data.split(":")[1]) == \
                                         PASSWORD:
-                                    # localIP = data.decode().split(":")[2]
                                     localIP = dhcpd.assignIP()
                                     self.clients[key] = {"aliveTime":
                                                          time.time(),
@@ -212,7 +211,6 @@ class Tunnel(object):
                                                          socket.inet_aton(
                                                              localIP)
                                                          }
-                                    # logging.info("新连接：", src, "IP：", localIP)
                                     logging.info("新连接：%s  IP：%s"
                                                  % (src, localIP))
                                     self.udpfd.sendto(
@@ -220,7 +218,8 @@ class Tunnel(object):
                                                     ":" +
                                                     localIP +
                                                     "/" +
-                                                    IFACE_IP.split("/")[1])).encode(),
+                                                    IFACE_IP.split("/")[1]
+                                                    ).encode()),
                                         src)
                             except:
                                 logging.warning("来自 %s 的连接密码无效" % (src,))
@@ -338,7 +337,6 @@ class AES_Encrypt(object):
             return "-1"
         self.ciphertext = cryptor.encrypt(text)
         return self.ciphertext
-        
 
     def decrypt(self, text):
         cryptor = AES.new(self.key, self.mode, b'\0' * 16)
