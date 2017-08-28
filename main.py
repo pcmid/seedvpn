@@ -168,7 +168,8 @@ class Tunnel(object):
                     (self.server_ip, PORT))
                 self.tryLogins -= 1
                 if self.tryLogins == 0:
-                    logging.warning("连接失败")
+                    logging.error("连接失败")
+                    sys.exit(LOGIN_TIMEOUT)
                 self.logTime = time.time()
 
             rset = select.select([self.udpfd, self.tfd], [], [], 1)[0]
@@ -192,7 +193,7 @@ class Tunnel(object):
                 elif r == self.udpfd:
                     data, src = self.udpfd.recvfrom(BUFFER_SIZE)
                     data = pc.decrypt(data)
-                    # logging.debug("socket收到数据 %s" % (data))
+                    logging.debug("socket收到数据 %s" % (data))
                     if is_server:  # Server
                         key = src
                         if key not in self.clients:
@@ -221,10 +222,12 @@ class Tunnel(object):
                                                     IFACE_IP.split("/")[1]
                                                     ).encode()),
                                         src)
-                            except:
+                            except UnicodeEncodeError:
                                 logging.warning("来自 %s 的连接密码无效" % (src,))
                                 self.udpfd.sendto(
                                     pc.encrypt("LOGIN:PASSWORD".encode()), src)
+                            except:
+                                raise Exception
                         else:
                             logging.debug("服务端写入网卡长度: %s" % (len(data)))
                             os.write(self.tfd, data)
@@ -245,9 +248,11 @@ class Tunnel(object):
                                     logging.info("登录成功\nIP: %s" % (recvIP,))
                                     self.config(recvIP)
                                     self.configRoutes()
-                        except:
+                        except UnicodeEncodeError:
                             # logging.debug("套接字收到数据 %s" %(data))
                             os.write(self.tfd, data)
+                        except:
+                            raise Exception
             if is_server:  # Server
                 # 删除timeout的连接
                 curTime = time.time()
