@@ -180,9 +180,9 @@ class Tunnel(object):
             for r in rset:
                 if r == self.tfd:
                     data = os.read(self.tfd, MTU)
-                    src_d, dst_d = data[16:20], data[20:24]
-                    logging.debug("网卡数据：src: %s \t dst: %s" %
-                                  (b2a_hex(src_d), b2a_hex(dst_d)))
+                    #src_d, dst_d = data[16:20], data[20:24]
+                    #logging.debug("网卡数据：src: %s \t dst: %s" %
+                    #              (b2a_hex(src_d), b2a_hex(dst_d)))
                     # data_header = data[:64]
                     # print("data_header: %s" % (b2a_hex(data_header)))
                     # logging.debug("网卡收到长度：%d" % (len(data)))
@@ -242,9 +242,9 @@ class Tunnel(object):
                         else:
                             # logging.debug("服务端写入网卡长度: %s" % (len(data)))
                             os.write(self.tfd, data)
-                            src_d2, dst_d2 = data[16:20], data[20:24]
-                            logging.debug("服务端发出：src: %s \t dst: %s" %
-                                          (b2a_hex(src_d2), b2a_hex(dst_d2)))
+                            #src_d2, dst_d2 = data[16:20], data[20:24]
+                            #logging.debug("服务端发出：src: %s \t dst: %s" %
+                            #              (b2a_hex(src_d2), b2a_hex(dst_d2)))
                             self.clients[key]["aliveTime"] = time.time()
 
                     else:  # Client
@@ -431,8 +431,8 @@ if __name__ == "__main__":
         usage(ARGS_ERROR)
 
     IFACE_IP, PORT, PASSWORD = parserConfig(config)
-    # if is_server:
-    #    daemon.daemon()
+    if is_server:
+        daemon.daemon()
     if is_server == 2 or PORT == 0:
         usage(0)
 
