@@ -46,6 +46,8 @@ from IPy import IP
 from Crypto.Cipher import AES
 from Crypto import Random
 import daemon
+from binascii import b2a_hex, a2b_hex
+
 
 ARGS_ERROR = 1
 NETWORK_ERROR = 2
@@ -181,7 +183,7 @@ class Tunnel(object):
                     logging.debug("网卡收到长度：%d" % (len(data)))
                     if is_server:  # Server
                         src, dst = data[16:20], data[20:24]
-                        logging.debug("src: %s\ndst: %s" % (src, dst))
+                        logging.debug("src: %s\ndst: %s" % (b2a_hex(src), b2a_hex(dst)))
                         for key in self.clients:
                             if dst == self.clients[key]["localIPn"]:
                                 logging.debug("服务端socket写入长度: %s" %
