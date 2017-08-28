@@ -65,7 +65,7 @@ IFACE_IP = "10.0.0.1/24"
 MTU = 1500
 TIMEOUT = 10 * 60  # seconds
 
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%H:%M:%S %a, %d %b %Y')
 
@@ -174,7 +174,8 @@ class Tunnel(object):
             for r in rset:
                 if r == self.tfd:
                     data = os.read(self.tfd, MTU)
-                    logging.debug("网卡收到数据 %s" % (data))
+                    #logging.debug("网卡收到数据 %s" % (data))
+                    logging.debug("网卡数据长：%d" %(len(data)))
                     if is_server:  # Server
                         src, dst = data[16:20], data[20:24]
                         for key in self.clients:
@@ -187,7 +188,7 @@ class Tunnel(object):
                 elif r == self.udpfd:
                     data, src = self.udpfd.recvfrom(BUFFER_SIZE)
                     data = pc.decrypt(data)
-                    logging.debug("收到数据 %s" % (data))
+                    #logging.debug("收到数据 %s" % (data))
                     if is_server:  # Server
                         key = src
                         if key not in self.clients:
@@ -217,7 +218,7 @@ class Tunnel(object):
                                                    IFACE_IP.split("/")[1]),
                                         src)
                             except:
-                                logging.info("来自 %s 的连接密码无效" % (src,))
+                                logging.warning("来自 %s 的连接密码无效" % (src,))
                                 self.udpfd.sendto(
                                     pc.encrypt("LOGIN:PASSWORD"), src)
                         else:
@@ -239,7 +240,7 @@ class Tunnel(object):
                                     self.config(recvIP)
                                     self.configRoutes()
                         except:
-                            logging.debug("套接字收到数据 %s" %(data))
+                            #logging.debug("套接字收到数据 %s" %(data))
                             os.write(self.tfd, data)
             if is_server:  # Server
                 # 删除timeout的连接
@@ -333,7 +334,7 @@ class AES_Encrypt(object):
             return self.ciphertext
         else:
             logging.debug("长度无效")
-            logging.debug("数据为 %s" % (text))
+            #logging.debug("数据为 %s" % (text))
             return "-1"
 
     # 解密后，去掉补足的空格用strip() 去掉
