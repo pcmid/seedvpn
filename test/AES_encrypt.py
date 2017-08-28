@@ -25,10 +25,10 @@ class prpcrypt():
         if count < length:
             add = (length - count)
             #\0 backspace
-            text = text + ("\0" * add)
+            text = text + (b"\0" * add)
         elif count > length:
             add = (length - (count % length))
-            text = text + ("\0" * add)
+            text = text + (b"\0" * add)
         self.ciphertext = cryptor.encrypt(text)
         # 因为AES加密时候得到的字符串不一定是ascii字符集的，输出到终端或者保存时候可能存在问题
         # 所以这里统一把加密后的字符串转化为16进制字符串
