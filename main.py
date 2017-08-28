@@ -175,13 +175,15 @@ class Tunnel(object):
                 if r == self.tfd:
                     data = os.read(self.tfd, MTU)
                     #logging.debug("网卡收到数据 %s" % (data))
-                    logging.debug("网卡数据长：%d" %(len(data)))
+                    logging.debug("socket收到长：%d" % (len(data)))
                     if is_server:  # Server
                         src, dst = data[16:20], data[20:24]
                         for key in self.clients:
                             if dst == self.clients[key]["localIPn"]:
+                                logging.debug("服务端socket写入长度: %s" % (len(pc.encrypt(data))))
                                 self.udpfd.sendto(pc.encrypt(data), key)
                     else:  # Client
+                        logging.debug("客户端发送长度: %s"%(pc.encrypt(data)))
                         self.udpfd.sendto(pc.encrypt(data), (
                             self.server_ip, PORT))
 
