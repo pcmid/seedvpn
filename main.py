@@ -20,7 +20,7 @@
 # may consider it more useful to permit linking proprietary applications with
 # the library.  If this is what you want to do, use the GNU Lesser General
 # Public License instead of this License.  But first, please read
-#<http://www.gnu.org/philosophy/why-not-lgpl.html>. 
+#<http://www.gnu.org/philosophy/why-not-lgpl.html>.
 
 
 '''
@@ -44,7 +44,7 @@ from copy import deepcopy
 import rsa
 from IPy import IP
 from Crypto.Cipher import AES
-from binascii import b2a_hex, a2b_hex
+from Crypto import Random
 import daemon
 
 ARGS_ERROR = 1
@@ -166,6 +166,8 @@ class Tunnel(object):
                 self.udpfd.sendto(
                     pc.encrypt(("LOGIN:" + PASSWORD).encode()),
                     (self.server_ip, PORT))
+                logging.debug("客户端登录数据: %s" %
+                              (len(pc.encrypt(("LOGIN:" + PASSWORD).encode()))))
                 self.tryLogins -= 1
                 if self.tryLogins == 0:
                     logging.error("连接失败")
@@ -176,8 +178,7 @@ class Tunnel(object):
             for r in rset:
                 if r == self.tfd:
                     data = os.read(self.tfd, MTU)
-                    # logging.debug("网卡收到数据 %s" % (data))
-                    # logging.debug("网卡收到长度：%d" % (len(data)))
+                    logging.debug("网卡收到长度：%d" % (len(data)))
                     if is_server:  # Server
                         src, dst = data[16:20], data[20:24]
                         for key in self.clients:
@@ -186,14 +187,15 @@ class Tunnel(object):
                                               (len(pc.encrypt(data))))
                                 self.udpfd.sendto(pc.encrypt(data), key)
                     else:  # Client
-                        logging.debug("客户端发送长度: %s" % (len(pc.encrypt(data))))
+                        #logging.debug("客户端发送长度: %s" % (len(pc.encrypt(data))))
                         self.udpfd.sendto(pc.encrypt(data), (
                             self.server_ip, PORT))
 
                 elif r == self.udpfd:
                     data, src = self.udpfd.recvfrom(BUFFER_SIZE)
+                    #logging.debug("解密前的数据: %s" % (data))
                     data = pc.decrypt(data)
-                    logging.debug("socket收到数据 %s" % (data))
+                    #logging.debug("socket收到数据 %s" % (data))
                     if is_server:  # Server
                         key = src
                         if key not in self.clients:
@@ -226,8 +228,8 @@ class Tunnel(object):
                                 logging.warning("来自 %s 的连接密码无效" % (src,))
                                 self.udpfd.sendto(
                                     pc.encrypt("LOGIN:PASSWORD".encode()), src)
-                            except:
-                                raise Exception
+                            # except:
+                            #    raise Exception
                         else:
                             logging.debug("服务端写入网卡长度: %s" % (len(data)))
                             os.write(self.tfd, data)
@@ -250,6 +252,7 @@ class Tunnel(object):
                                     self.configRoutes()
                         except UnicodeEncodeError:
                             # logging.debug("套接字收到数据 %s" %(data))
+                            logging.debug("客户端写入网卡长度: %s" % (len(data)))
                             os.write(self.tfd, data)
                         except:
                             raise Exception
@@ -319,9 +322,11 @@ class AES_Encrypt(object):
             logging.error("密码太长")
             sys.exit(PASSWD_ERROR)
         self.mode = AES.MODE_CBC
+        #self.iv = Random.new().read(AES.block_size)
+        self.iv = b'0' * 16
 
     def encrypt(self, text):
-        cryptor = AES.new(self.key, self.mode, b'0' * 16)
+        cipher = AES.new(self.key, self.mode, self.iv)
         # 这里密钥key 长度必须为16（AES-128）,
         # 24（AES-192）,或者32 （AES-256）Bytes 长度
         # 为了兼顾效率和安全性，采用AES-128
@@ -330,25 +335,25 @@ class AES_Encrypt(object):
         if count < length:
             add = length - count
             # add always less than 16
-            text = text + (b'\0' * (add - 1)) + bytes([add])
+            text = text + b'\0' * (add - 1) + bytes([add])
         elif count > length:
             add = (length - (count % length))
-            text = text + (b'\0' * (add - 1)) + bytes([add])
-        elif len(text) % 16 == 0:
-            text = text + b'\0' * 15 + bytes([16])
+            text = text + b'\0' * (add - 1) + bytes([add])
         else:
-            logging.debug("长度无效")
-            # logging.debug("数据为 %s" % (text))
-            return "-1"
-        self.ciphertext = cryptor.encrypt(text)
-        return self.ciphertext
+            add = 16
+            text = text + b'\0' * (add - 1) + bytes([add])
+        #logging.debug("加密前数据：%s" % (text))
+        self.cipher_text = cipher.encrypt(text)
+        #logging.debug("加密后的数据: %s" % (self.cipher_text))
+        return self.cipher_text
 
     def decrypt(self, text):
-        cryptor = AES.new(self.key, self.mode, b'\0' * 16)
+        cipher = AES.new(self.key, self.mode, self.iv)
         if len(text) % 16 == 0:
-            plain_text = cryptor.decrypt(text)
-            added = plain_text[-1]
-            return plain_text[:len(plain_text) - added]
+            plain_text = cipher.decrypt(text)
+            #logging.debug("解密后的数据: %s" % (plain_text))
+            add = plain_text[-1]
+            return plain_text[:-add]
         else:
             logging.debug("解密无效")
             return "-1"
