@@ -181,6 +181,7 @@ class Tunnel(object):
                     logging.debug("网卡收到长度：%d" % (len(data)))
                     if is_server:  # Server
                         src, dst = data[16:20], data[20:24]
+                        logging.debug("src: %s\ndst: %s" % (src, dst))
                         for key in self.clients:
                             if dst == self.clients[key]["localIPn"]:
                                 logging.debug("服务端socket写入长度: %s" %
@@ -250,7 +251,7 @@ class Tunnel(object):
                                     logging.info("登录成功\nIP: %s" % (recvIP,))
                                     self.config(recvIP)
                                     self.configRoutes()
-                        except UnicodeEncodeError:
+                        except UnicodeDecodeError:
                             # logging.debug("套接字收到数据 %s" %(data))
                             logging.debug("客户端写入网卡长度: %s" % (len(data)))
                             os.write(self.tfd, data)
