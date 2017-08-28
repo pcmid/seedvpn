@@ -57,7 +57,7 @@ IFF_TUN = 0x0001
 
 
 BUFFER_SIZE = 65535
-is_server = 2
+IS_SERVER = 2
 
 PORT = 0
 IFACE_IP = "10.0.0.1/24"
@@ -70,11 +70,31 @@ logging.basicConfig(level=logging.DEBUG,
 
 
 class Tunnel(object):
+    '''创建以及配置网络环境'''
+    # pylint: disable=too-many-instance-attributes
+    # Eight is reasonable in this case.
+
+    def __init__(self):
+        '''仅仅为了pep8'''
+        self.tfd = None
+        self.tname = None
+        self.prev_gateway = None
+        self.prev_gateway_metric = None
+        self.new_gateway = None
+        self.tun_gateway = None
+        self.server_ip = None
+        self.clients = {}
+        self.logged = False
+        self.try_logins = 5
+        self.log_time = 0
+        self.udpfd = None
+        self.old_dns = None
 
     def create(self):
+        '''创建网卡'''
         try:
             self.tfd = os.open("/dev/net/tun", os.O_RDWR)
-        except:
+        except NameError:
             self.tfd = os.open("/dev/tun", os.O_RDWR)
         ifs = fcntl.ioctl(self.tfd, TUNSETIFF, struct.pack(
             "16sH", "tun%d".encode("utf-8"), IFF_TUN))
@@ -82,17 +102,20 @@ class Tunnel(object):
         self.tname = dev.strip(b"\x00").decode()
 
     def close(self):
+        '''关闭网卡套接字'''
         os.close(self.tfd)
 
-    def config(self, ip):
+    def config(self, ip):  # pylint: disable=C0103
+        '''配置网卡信息'''
         os.system("ip link set %s up" % (self.tname))
-        logging.info("ip link set %s up" % (self.tname))
+        logging.info("ip link set %s up", self.tname)
         os.system("ip link set %s mtu 1000" % (self.tname))
-        logging.info("ip link set %s mtu 1000" % (self.tname))
+        logging.info("ip link set %s mtu 1000", self.tname)
         os.system("ip addr add %s dev %s" % (ip, self.tname))
-        logging.info("ip addr add %s dev %s" % (ip, self.tname))
+        logging.info("ip addr add %s dev %s", ip, self.tname)
 
-    def configRoutes(self):
+    def config_routes(self):
+        '''配置路由和设置DNS'''
         logging.info("设置新路由...")
         # 查找默认路由
         routes = os.popen("ip route show").readlines()
@@ -106,7 +129,7 @@ class Tunnel(object):
         self.new_gateway = "default dev %s metric 1" % (self.tname)
         self.tun_gateway = self.prev_gateway.replace(
             "default", self.server_ip)
-        with open("/etc/resolv.conf", "rb") as fs:
+        with open("/etc/resolv.conf", "rb") as fs:  # pylint: disable=C0103
             self.old_dns = fs.read()
         # 删除默认路由
         os.system("ip route del " + self.prev_gateway)
@@ -120,12 +143,13 @@ class Tunnel(object):
         logging.info("ip route add " + self.new_gateway)
         os.system("ip route add " + self.new_gateway)
         # DNS
-        with open("/etc/resolv.conf", "w") as fs:
+        with open("/etc/resolv.conf", "w") as fs:  # pylint: disable=C0103
             fs.write("nameserver 8.8.8.8")
         logging.info("设置完成")
 
-    def restoreRoutes(self):
-        if not is_server:
+    def restore_routes(self):
+        '''恢复原来的路由'''
+        if not IS_SERVER:
             logging.info("恢复源路由...")
             os.system("ip route del " + self.new_gateway)
             logging.info("ip route del " + self.new_gateway)
@@ -134,15 +158,16 @@ class Tunnel(object):
             os.system("ip route del " + self.tun_gateway)
             logging.info("ip route add " + self.prev_gateway)
             os.system("ip route add " + self.prev_gateway)
-            with open("/etc/resolv.conf", "wb") as fs:
+            with open("/etc/resolv.conf", "wb") as fs:  # pylint: disable=C0103
                 fs.write(self.old_dns)
             logging.info("恢复完成")
 
-    def run(self):
-        global IFACE_IP, PORT, PASSWORD
-        pc = AES_Encrypt(PASSWORD)
+    def run(self): # pylint: disable=R0912,R0915
+        '''运行'''
+        global IFACE_IP, PORT, PASSWORD  # pylint: disable=W0603
+        pc = AES_Encrypt(PASSWORD)  # pylint: disable=C0103
         self.udpfd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        if is_server:
+        if IS_SERVER:
             self.config(IFACE_IP)
             self.udpfd.bind(("", PORT))
             logging.info("DHCP...")
@@ -152,14 +177,10 @@ class Tunnel(object):
             self.server_ip = socket.gethostbyname(IFACE_IP)
             self.udpfd.bind(("", 0))
 
-        self.clients = {}
-        self.logged = False
-        self.tryLogins = 5
-        self.logTime = 0
-        while True:
-            if not is_server and\
+        while True: # pylint: disable=R1702
+            if not IS_SERVER and\
                     not self.logged and\
-                    time.time() - self.logTime > 2:
+                    time.time() - self.log_time > 2:
 
                 logging.info("登录中...")
                 # logging.debug("密码 " + PASSWORD)
@@ -168,28 +189,28 @@ class Tunnel(object):
                     (self.server_ip, PORT))
                 # logging.debug("客户端登录数据: %s" %
                 #              (len(pc.encrypt(("LOGIN:" + PASSWORD).encode()))))
-                self.tryLogins -= 1
-                if self.tryLogins == 0:
+                self.try_logins -= 1
+                if self.try_logins == 0:
                     logging.error("连接失败")
                     sys.exit(LOGIN_TIMEOUT)
-                self.logTime = time.time()
+                self.log_time = time.time()
 
             rset = select.select([self.udpfd, self.tfd], [], [], 1)[0]
-            for r in rset:
+            for r in rset:  # pylint: disable=C0103
                 if r == self.tfd:
                     data = os.read(self.tfd, MTU)
                     #src_d, dst_d = data[16:20], data[20:24]
-                    #logging.debug("网卡数据：src: %s \t dst: %s" %
+                    # logging.debug("网卡数据：src: %s \t dst: %s" %
                     #              (b2a_hex(src_d), b2a_hex(dst_d)))
                     # data_header = data[:64]
                     # print("data_header: %s" % (b2a_hex(data_header)))
                     # logging.debug("网卡收到长度：%d" % (len(data)))
-                    if is_server:  # Server
+                    if IS_SERVER:  # Server
                         src, dst = data[16:20], data[20:24]
                         # logging.debug("src: %s \t dst: %s" %
                         # (b2a_hex(src), b2a_hex(dst)))
                         for key in self.clients:
-                            if dst == self.clients[key]["localIPn"]:
+                            if dst == self.clients[key]["local_ipn"]:
                                 # logging.debug("服务端socket写入长度: %s" %
                                 #              (len(pc.encrypt(data))))
                                 self.udpfd.sendto(pc.encrypt(data), key)
@@ -203,36 +224,36 @@ class Tunnel(object):
                     # logging.debug("解密前的数据: %s" % (data))
                     data = pc.decrypt(data)
                     # logging.debug("socket收到数据 %s" % (data))
-                    if is_server:  # Server
+                    if IS_SERVER:  # Server
                         key = src
                         if key not in self.clients:
                             # 如果第一次连接
                             try:
                                 data = data.decode()
                                 if (data.startswith("LOGIN:") and
-                                    data.split(":")[1]) == \
+                                        data.split(":")[1]) == \
                                         PASSWORD:
-                                    localIP = dhcpd.assignIP()
+                                    local_ip = dhcpd.assign_ip()
                                     self.clients[key] = {"aliveTime":
                                                          time.time(),
-                                                         "localIP":
-                                                         localIP,
-                                                         "localIPn":
+                                                         "local_ip":
+                                                         local_ip,
+                                                         "local_ipn":
                                                          socket.inet_aton(
-                                                             localIP)
-                                                         }
-                                    logging.info("新连接：%s  IP：%s"
-                                                 % (src, localIP))
+                                                             local_ip)
+                                                        }
+                                    logging.info("新连接：%s  IP：%s",
+                                                 src, local_ip)
                                     self.udpfd.sendto(
                                         pc.encrypt(("LOGIN:SUCCESS" +
                                                     ":" +
-                                                    localIP +
+                                                    local_ip +
                                                     "/" +
                                                     IFACE_IP.split("/")[1]
-                                                    ).encode()),
+                                                   ).encode()),
                                         src)
                             except UnicodeDecodeError:
-                                logging.warning("来自 %s 的连接密码无效" % (src,))
+                                logging.warning("来自 %s 的连接密码无效", src)
                                 self.udpfd.sendto(
                                     pc.encrypt("LOGIN:PASSWORD".encode()), src)
                             except:
@@ -241,7 +262,7 @@ class Tunnel(object):
                             # logging.debug("服务端写入网卡长度: %s" % (len(data)))
                             os.write(self.tfd, data)
                             #src_d2, dst_d2 = data[16:20], data[20:24]
-                            #logging.debug("服务端发出：src: %s \t dst: %s" %
+                            # logging.debug("服务端发出：src: %s \t dst: %s" %
                             #              (b2a_hex(src_d2), b2a_hex(dst_d2)))
                             self.clients[key]["aliveTime"] = time.time()
 
@@ -254,28 +275,29 @@ class Tunnel(object):
                                     logging.error("连接失败！")
                                 elif data.split(":")[1] == (
                                         "SUCCESS"):
-                                    recvIP = data.split(":")[2]
+                                    recv_ip = data.split(":")[2]
                                     self.logged = True
-                                    self.tryLogins = 5
-                                    logging.info("登录成功\nIP: %s" % (recvIP,))
-                                    self.config(recvIP)
-                                    self.configRoutes()
+                                    self.try_logins = 5
+                                    logging.info("登录成功\tIP: %s", recv_ip)
+                                    self.config(recv_ip)
+                                    self.config_routes()
                         except UnicodeDecodeError:
                             # logging.debug("套接字收到数据 %s" %(data))
                             # logging.debug("客户端写入网卡长度: %s" % (len(data)))
                             os.write(self.tfd, data)
                         except:
                             raise Exception
-            if is_server:  # Server
+            if IS_SERVER:  # Server
                 # 删除timeout的连接
-                curTime = time.time()
-                clientsCopy = deepcopy(self.clients)
-                for key in clientsCopy:
-                    if curTime - self.clients[key]["aliveTime"] > TIMEOUT:
-                        logging.info("删除超时连接：%s" % (key,))
-                        logging.info("回收ip %s" %
-                                     (self.clients[key]["localIP"]))
-                        dhcpd.removeUsedIP(self.clients[key]["localIP"])
+                cur_time = time.time()
+                clients_copy = deepcopy(self.clients)
+                for key in clients_copy:
+                    if cur_time - self.clients[key]["aliveTime"] > TIMEOUT:
+                        logging.info("删除超时连接：%s", key)
+                        logging.info("回收ip %s",
+                                     (self.clients[key]["local_ip"]))
+                        dhcpd.remove_unused_ip_from_list(
+                            self.clients[key]["local_ip"])
                         self.clients.pop(key)
 
 
@@ -283,27 +305,34 @@ class DHCP():
     ''' 分配ip给用户 '''
 
     def __init__(self, ip):
-        self.IPPool = IP(ip)
+        '''初始化'''
+        self.ip_pool = IP(ip)
         # 去掉网关，服务器和广播地址
-        self.usedIPList = [self.IPPool[0], self.IPPool[1], self.IPPool[-1]]
+        self.used_ip_list = [self.ip_pool[0],
+                             self.ip_pool[1], self.ip_pool[-1]]
 
-    def addUsedIP(self, usdIP):
-        self.usedIPList.append(usdIP)
+    def add_used_ip_to_list(self, usd_ip):
+        '''添加已经被使用的ip进列表'''
+        self.used_ip_list.append(usd_ip)
 
-    def removeUsedIP(self, unUsedIP):
-        self.usedIPList.remove(IP(unUsedIP))
+    def remove_unused_ip_from_list(self, unused_ip):
+        '''从已经使用的ip列表中删除超时的ip'''
+        self.used_ip_list.remove(IP(unused_ip))
 
-    def assignIP(self):
-        resIP = [ip for ip in self.IPPool if ip not in self.usedIPList][0]
-        self.addUsedIP(resIP)
-        return resIP.strNormal()
+    def assign_ip(self):
+        '''分配ip
+            返回ip
+        '''
+        res_ip = [ip for ip in self.ip_pool if ip not in self.used_ip_list][0]
+        self.add_used_ip_to_list(res_ip)
+        return res_ip.strNormal()
 
 
-class RSA_Encrypt(object):
+class RSA_Encrypt(object):  # pylint: disable=C0103
     '''加密和解密数据'''
 
     def __init__(self):
-        if is_server:
+        if IS_SERVER:
             pass
 
         else:
@@ -318,7 +347,9 @@ class RSA_Encrypt(object):
         pass
 
 
-class AES_Encrypt(object):
+class AES_Encrypt(object):  # pylint: disable=C0103
+    '''加密和解密'''
+
     def __init__(self, key):
         count = len(key)
         if count < 16:
@@ -332,10 +363,13 @@ class AES_Encrypt(object):
             logging.error("密码太长")
             sys.exit(PASSWD_ERROR)
         self.mode = AES.MODE_CBC
-        # self.iv = Random.new().read(AES.block_size)
-        self.iv = b'0' * 16
+        self.iv = b'0' * 16  # pylint: disable=C0103
+        self.cipher_text = None
 
     def encrypt(self, text):
+        '''加密数据
+            返回: 加密的字符串
+        '''
         cipher = AES.new(self.key, self.mode, self.iv)
         # 这里密钥key 长度必须为16（AES-128）,
         # 24（AES-192）,或者32 （AES-256）Bytes 长度
@@ -358,8 +392,11 @@ class AES_Encrypt(object):
         return self.cipher_text
 
     def decrypt(self, text):
+        '''解密数据
+            解密成功返回原文，失败返回 "-1"
+        '''
         cipher = AES.new(self.key, self.mode, self.iv)
-        if len(text) % 16 == 0:
+        if len(text) % 16 == 0: # pylint: disable=R1705
             plain_text = cipher.decrypt(text)
             # logging.debug("解密后的数据: %s" % (plain_text))
             add = plain_text[-1]
@@ -370,30 +407,33 @@ class AES_Encrypt(object):
 
 
 def ping_server():
+    '''心跳函数'''
     pass
 
 
 def usage(status):
+    '''使用说明'''
     print("Usage: %s [-h] --config config path\n\n" % (sys.argv[0]))
     print(status)
     sys.exit(status)
 
 
-def parserConfig(configPath):
+def parser_config(config_path):
     '''解析conf文件
     return：
         client：服务器IP和port
         server：tun's ip port
     '''
-    global is_server
+    global IS_SERVER  # pylint: disable=W0603
     try:
-        open(configPath, "r")
-    except IOError as e:
+        open(config_path, "r")
+    except IOError as e:  # pylint: disable=C0103
         print(e.strerror)
         sys.exit(e.errno)
 
-    config = configparser.ConfigParser()
-    config.read(configPath)
+    config = configparser.ConfigParser()  # pylint: disable=W0621
+    # I will take it to other file
+    config.read(config_path)
 
     secs = config.sections()
     if ("client" in secs and "server" in secs) or \
@@ -401,14 +441,14 @@ def parserConfig(configPath):
         raise Exception("配置文件错误：配置只能选择client或server")
 
     if "server" in secs:
-        is_server = 1
-        tun_IFACE = config.get("server", "tun_IFACE")
+        IS_SERVER = 1
+        tun_IFACE = config.get("server", "tun_IFACE")  # pylint: disable=C0103
         port = config.get("server", "port")
         pwd = config.get("server", "password")
         return tun_IFACE, int(port), pwd
 
     if "client" in secs:
-        is_server = 0
+        IS_SERVER = 0
         addr = config.get("client", "addr")
         port = config.get("client", "port")
         pwd = config.get("client", "password")
@@ -417,8 +457,8 @@ def parserConfig(configPath):
 
 if __name__ == "__main__":
     try:
-        opts, _ = getopt.getopt(sys.argv[1:], "h", "config=")
-        for name, value in opts:
+        OPTS, _ = getopt.getopt(sys.argv[1:], "h", "config=")
+        for name, value in OPTS:
             if name == "-h":
                 usage(0)
                 sys.exit()
@@ -428,22 +468,23 @@ if __name__ == "__main__":
         logging.error("必须指定 --config参数")
         usage(ARGS_ERROR)
 
-    IFACE_IP, PORT, PASSWORD = parserConfig(config)
-    if is_server:
+    IFACE_IP, PORT, PASSWORD = parser_config(config)
+    if IS_SERVER:
         daemon.daemon()
-    if is_server == 2 or PORT == 0:
+    if IS_SERVER == 2 or PORT == 0:
         usage(0)
 
-    tun = Tunnel()
-    tun.create()
+    TUN = Tunnel()
+    TUN.create()
     try:
-        tun.run()
+        TUN.run()
     except KeyboardInterrupt:
         try:
             # print(traceback.format_exc())
-            tun.restoreRoutes()
-            tun.close()
-        except:
+            TUN.restore_routes()
+            TUN.close()
+        except:  # pylint: disable=W0702
+                # just concealmen some output
             pass
     finally:
         print("end")
