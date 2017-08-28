@@ -41,12 +41,9 @@ import select
 import logging
 import configparser
 from copy import deepcopy
-import rsa
 from IPy import IP
 from Crypto.Cipher import AES
-from Crypto import Random
 import daemon
-from binascii import b2a_hex, a2b_hex
 
 
 ARGS_ERROR = 1
@@ -150,6 +147,7 @@ class Tunnel(object):
             self.udpfd.bind(("", PORT))
             logging.info("DHCP...")
             dhcpd = DHCP(IFACE_IP.replace('1/', '0/'))
+            logging.info("DHCP启动完成")
         else:
             self.server_ip = socket.gethostbyname(IFACE_IP)
             self.udpfd.bind(("", 0))
