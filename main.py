@@ -183,7 +183,10 @@ class Tunnel(object):
                     logging.debug("网卡收到长度：%d" % (len(data)))
                     if is_server:  # Server
                         src, dst = data[16:20], data[20:24]
-                        logging.debug("src: %s\ndst: %s" % (b2a_hex(src), b2a_hex(dst)))
+                        data_header = data[:64]
+                        logging.debug("src: %s \t dst: %s" %
+                                      (b2a_hex(src), b2a_hex(dst)))
+                        print("data_header: %s" % (b2a_hex(data_header)))
                         for key in self.clients:
                             if dst == self.clients[key]["localIPn"]:
                                 logging.debug("服务端socket写入长度: %s" %
@@ -227,12 +230,12 @@ class Tunnel(object):
                                                     IFACE_IP.split("/")[1]
                                                     ).encode()),
                                         src)
-                            except UnicodeEncodeError:
+                            except UnicodeDecodeError:
                                 logging.warning("来自 %s 的连接密码无效" % (src,))
                                 self.udpfd.sendto(
                                     pc.encrypt("LOGIN:PASSWORD".encode()), src)
-                            # except:
-                            #    raise Exception
+                            except:
+                                raise Exception
                         else:
                             logging.debug("服务端写入网卡长度: %s" % (len(data)))
                             os.write(self.tfd, data)
