@@ -484,7 +484,7 @@ if __name__ == "__main__":
             TUN.restore_routes()
             TUN.close()
         except:  # pylint: disable=W0702
-                # just concealmen some output
+                 # just concealmen some output
             pass
     finally:
         print("end")
