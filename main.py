@@ -66,7 +66,8 @@ IFACE_IP = "10.0.0.1/24"
 MTU = 1500
 TIMEOUT = 10 * 60  # seconds
 
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.INFO,
+                    filename="/var/log/seedvpn.log",
                     format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%H:%M:%S %a, %d %b %Y')
 
@@ -88,6 +89,7 @@ class Tunnel(object):
         self.old_dns = None
         self.server_ip = None
         self.clients = {}
+        self.client_time = time.time()
         self.logged = False
         self.try_logins = 5
         self.log_time = 0
@@ -183,7 +185,6 @@ class Tunnel(object):
             if not IS_SERVER and\
                     not self.logged and\
                     time.time() - self.log_time > 2:
-
                 logging.info("登录中...")
                 logging.debug("密码 " + PASSWORD)
                 self.udpfd.sendto(
@@ -260,24 +261,23 @@ class Tunnel(object):
                     else:  # Client
                         try:
                             data = data.decode()
+                            if data.startswith("LOGIN"):
+                                if data.endswith("PASSWORD"):
+                                    self.logged = False
+                                    logging.error("连接失败！")
+                                elif data.split(":")[1] == (
+                                        "SUCCESS"):
+                                    recv_ip = data.split(":")[2]
+                                    self.logged = True
+                                    self.try_logins = 5
+                                    logging.info("登录成功\tIP: %s", recv_ip)
+                                    self.config(recv_ip)
+                                    self.config_routes()
                         except UnicodeDecodeError:
                             os.write(self.tfd, data)
-                            client_time = time.time()
                         except:
                             raise Exception
-
-                        if data.startswith("LOGIN"):
-                            if data.endswith("PASSWORD"):
-                                self.logged = False
-                                logging.error("连接失败！")
-                            elif data.split(":")[1] == (
-                                    "SUCCESS"):
-                                recv_ip = data.split(":")[2]
-                                self.logged = True
-                                self.try_logins = 5
-                                logging.info("登录成功\tIP: %s", recv_ip)
-                                self.config(recv_ip)
-                                self.config_routes()
+                        
 
             # 解决timeout的连接
             cur_time = time.time()
@@ -292,12 +292,14 @@ class Tunnel(object):
                             self.clients[key]["local_ip"])
                         self.clients.pop(key)
             else:
-                if cur_time - client_time > TIMEOUT:
+                if cur_time - self.client_time > TIMEOUT:
                     logging.warning("连接超时")
                     logging.info("终止")
                     self.restore_routes()
                     self.close()
                     sys.exit(TIMEOUT)
+                else:
+                    self.client_time = time.time()
 
 
 
