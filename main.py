@@ -162,7 +162,7 @@ class Tunnel(object):
                 fs.write(self.old_dns)
             logging.info("恢复完成")
 
-    def run(self): # pylint: disable=R0912,R0915
+    def run(self):  # pylint: disable=R0912,R0915
         '''运行'''
         global IFACE_IP, PORT, PASSWORD  # pylint: disable=W0603
         pc = AES_Encrypt(PASSWORD)  # pylint: disable=C0103
@@ -170,14 +170,16 @@ class Tunnel(object):
         if IS_SERVER:
             self.config(IFACE_IP)
             self.udpfd.bind(("", PORT))
-            logging.info("DHCP...")
+            # logging.info("DHCP...",end)
+            print("DHCP...", end=' ')
             dhcpd = DHCP(IFACE_IP.replace('1/', '0/'))
-            logging.info("DHCP启动完成")
+            # logging.info("DHCP启动完成")
+            print("yes")
         else:
             self.server_ip = socket.gethostbyname(IFACE_IP)
             self.udpfd.bind(("", 0))
 
-        while True: # pylint: disable=R1702
+        while True:  # pylint: disable=R1702
             if not IS_SERVER and\
                     not self.logged and\
                     time.time() - self.log_time > 2:
@@ -256,6 +258,8 @@ class Tunnel(object):
                                 logging.warning("来自 %s 的连接密码无效", src)
                                 self.udpfd.sendto(
                                     pc.encrypt("LOGIN:PASSWORD".encode()), src)
+                            except AttributeError:
+                                logging.warning("抓到一个str：%s", data)
                             except:
                                 raise Exception
                         else:
@@ -285,6 +289,8 @@ class Tunnel(object):
                             # logging.debug("套接字收到数据 %s" %(data))
                             # logging.debug("客户端写入网卡长度: %s" % (len(data)))
                             os.write(self.tfd, data)
+                        except AttributeError:
+                            logging.warning("抓到一个str：%s", data)
                         except:
                             raise Exception
             if IS_SERVER:  # Server
@@ -396,7 +402,7 @@ class AES_Encrypt(object):  # pylint: disable=C0103
             解密成功返回原文，失败返回 "-1"
         '''
         cipher = AES.new(self.key, self.mode, self.iv)
-        if len(text) % 16 == 0: # pylint: disable=R1705
+        if len(text) % 16 == 0:  # pylint: disable=R1705
             plain_text = cipher.decrypt(text)
             # logging.debug("解密后的数据: %s" % (plain_text))
             add = plain_text[-1]
