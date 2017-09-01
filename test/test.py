@@ -83,20 +83,98 @@ class Tunnel(object):
         self.new_gateway = None
         self.tun_gateway = None
         self.server_ip = None
+        self.old_dns = None
+
+    def create(self):
+        '''创建网卡'''
+        try:
+            self.tfd = os.open("/dev/net/tun", os.O_RDWR)
+        except NameError:
+            self.tfd = os.open("/dev/tun", os.O_RDWR)
+        ifs = fcntl.ioctl(self.tfd, TUNSETIFF, struct.pack(
+            "16sH", "tun%d".encode("utf-8"), IFF_TUN))
+        dev, _ = struct.unpack("16sH", ifs)
+        self.tname = dev.strip(b"\x00").decode()
+        return self.tfd
+
+    def close(self):
+        '''关闭网卡套接字'''
+        os.close(self.tfd)
+
+    def config(self, ip):  # pylint: disable=C0103
+        '''配置网卡信息'''
+        os.system("ip link set %s up" % (self.tname))
+        logging.info("ip link set %s up", self.tname)
+        os.system("ip link set %s mtu 1000" % (self.tname))
+        logging.info("ip link set %s mtu 1000", self.tname)
+        os.system("ip addr add %s dev %s" % (ip, self.tname))
+        logging.info("ip addr add %s dev %s", ip, self.tname)
+
+    def config_routes(self):
+        '''配置路由和设置DNS'''
+        logging.info("设置新路由...")
+        # 查找默认路由
+        routes = os.popen("ip route show").readlines()
+        defaults = [x.rstrip() for x in routes if x.startswith("default")]
+        if not defaults:
+            logging.error("找不到默认路由，没有网络链接！")
+            sys.exit(NETWORK_ERROR)
+
+        self.prev_gateway = defaults[0]
+        self.prev_gateway_metric = self.prev_gateway + " metric 2"
+        self.new_gateway = "default dev %s metric 1" % (self.tname)
+        self.tun_gateway = self.prev_gateway.replace(
+            "default", self.server_ip)
+        with open("/etc/resolv.conf", "rb") as fs:  # pylint: disable=C0103
+            self.old_dns = fs.read()
+        # 删除默认路由
+        os.system("ip route del " + self.prev_gateway)
+        logging.info("ip route del " + self.prev_gateway)
+        # 降低源路由metric等级
+        os.system("ip route add " + self.prev_gateway_metric)
+        # 为连接服务器添加的路由
+        logging.info("ip route add " + self.tun_gateway)
+        os.system("ip route add " + self.tun_gateway)
+        # 添加默认路由
+        logging.info("ip route add " + self.new_gateway)
+        os.system("ip route add " + self.new_gateway)
+        # DNS
+        with open("/etc/resolv.conf", "w") as fs:  # pylint: disable=C0103
+            fs.write("nameserver 8.8.8.8")
+        logging.info("设置完成")
+
+    def restore_routes(self):
+        '''恢复原来的路由'''
+        if not IS_SERVER:
+            logging.info("恢复源路由...")
+            os.system("ip route del " + self.new_gateway)
+            logging.info("ip route del " + self.new_gateway)
+            os.system("ip route del " + self.prev_gateway_metric)
+            logging.info("ip route del " + self.prev_gateway_metric)
+            os.system("ip route del " + self.tun_gateway)
+            logging.info("ip route add " + self.prev_gateway)
+            os.system("ip route add " + self.prev_gateway)
+            with open("/etc/resolv.conf", "wb") as fs:  # pylint: disable=C0103
+                fs.write(self.old_dns)
+            logging.info("恢复完成")
+
+class VPNRun(object):
+    def __init__(self):
         self.clients = {}
         self.logged = False
         self.try_logins = 5
         self.log_time = 0
-        self.udpfd = None
-        self.old_dns = None
+        self.udpfd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def run(self):  # pylint: disable=R0912,R0915
         '''运行'''
         global IFACE_IP, PORT, PASSWORD  # pylint: disable=W0603
+
+        tun = Tunnel()
+        tun.create()
         pc = AES_Encrypt(PASSWORD)  # pylint: disable=C0103
-        self.udpfd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.tfd = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
         if IS_SERVER:
+            tun.config(IFACE_IP)
             self.udpfd.bind(("", PORT))
             # logging.info("DHCP...",end)
             print("DHCP...", end=' ')
@@ -128,8 +206,7 @@ class Tunnel(object):
             rset = select.select([self.udpfd, self.tfd], [], [], 1)[0]
             for r in rset:  # pylint: disable=C0103
                 if r == self.tfd:
-                    # data = os.read(self.tfd, MTU)
-                    data = socket.recvfrom()
+                    data = os.read(self.tfd, MTU)
                     #src_d, dst_d = data[16:20], data[20:24]
                     # logging.debug("网卡数据：src: %s \t dst: %s" %
                     #              (b2a_hex(src_d), b2a_hex(dst_d)))
@@ -218,6 +295,8 @@ class Tunnel(object):
                             # logging.debug("套接字收到数据 %s" %(data))
                             # logging.debug("客户端写入网卡长度: %s" % (len(data)))
                             os.write(self.tfd, data)
+                        except AttributeError:
+                            logging.warning("抓到一个str：%s", data)
                         except:
                             raise Exception
             if IS_SERVER:  # Server
@@ -241,8 +320,10 @@ class DHCP():
         '''初始化'''
         self.ip_pool = IP(ip)
         # 去掉网关，服务器和广播地址
-        self.used_ip_list = [self.ip_pool[0],
-                             self.ip_pool[1], self.ip_pool[-1]]
+        self.used_ip_list = [
+            self.ip_pool[0],
+            self.ip_pool[1],
+            self.ip_pool[-1]]
 
     def add_used_ip_to_list(self, usd_ip):
         '''添加已经被使用的ip进列表'''
@@ -340,7 +421,7 @@ class AES_Encrypt(object):  # pylint: disable=C0103
 
 
 def ping_server():
-    '''心跳函数'''
+    '''发送心跳包保持连接'''
     pass
 
 
@@ -407,7 +488,6 @@ if __name__ == "__main__":
     if IS_SERVER == 2 or PORT == 0:
         usage(0)
 
-    TUN = Tunnel()
     try:
         TUN.run()
     except KeyboardInterrupt:

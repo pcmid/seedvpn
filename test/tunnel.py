@@ -42,6 +42,7 @@ def create():
         "16sH", "tun%d".encode("utf-8"), IFF_TUN))
     dev, _ = struct.unpack("16sH", ifs)
     TUN_NAME = dev.strip(b"\x00").decode()
+    return TUN_FD
 
 
 def close():

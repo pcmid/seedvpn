@@ -40,9 +40,11 @@ import socket
 import select
 import logging
 import configparser
+import signal
 from copy import deepcopy
 from IPy import IP
 from Crypto.Cipher import AES
+from binascii import b2a_hex, a2b_hex
 import daemon
 
 
@@ -69,6 +71,7 @@ logging.basicConfig(level=logging.DEBUG,
                     datefmt='%H:%M:%S %a, %d %b %Y')
 
 
+
 class Tunnel(object):
     '''创建以及配置网络环境'''
     # pylint: disable=too-many-instance-attributes
@@ -82,13 +85,13 @@ class Tunnel(object):
         self.prev_gateway_metric = None
         self.new_gateway = None
         self.tun_gateway = None
+        self.old_dns = None
         self.server_ip = None
         self.clients = {}
         self.logged = False
         self.try_logins = 5
         self.log_time = 0
-        self.udpfd = None
-        self.old_dns = None
+        self.udpfd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def create(self):
         '''创建网卡'''
@@ -166,15 +169,12 @@ class Tunnel(object):
         '''运行'''
         global IFACE_IP, PORT, PASSWORD  # pylint: disable=W0603
         pc = AES_Encrypt(PASSWORD)  # pylint: disable=C0103
-        self.udpfd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        
         if IS_SERVER:
             self.config(IFACE_IP)
             self.udpfd.bind(("", PORT))
-            # logging.info("DHCP...",end)
-            print("DHCP...", end=' ')
             dhcpd = DHCP(IFACE_IP.replace('1/', '0/'))
-            # logging.info("DHCP启动完成")
-            print("yes")
+            logging.info("DHCP启动完成")
         else:
             self.server_ip = socket.gethostbyname(IFACE_IP)
             self.udpfd.bind(("", 0))
@@ -185,12 +185,10 @@ class Tunnel(object):
                     time.time() - self.log_time > 2:
 
                 logging.info("登录中...")
-                # logging.debug("密码 " + PASSWORD)
+                logging.debug("密码 " + PASSWORD)
                 self.udpfd.sendto(
                     pc.encrypt(("LOGIN:" + PASSWORD).encode()),
                     (self.server_ip, PORT))
-                # logging.debug("客户端登录数据: %s" %
-                #              (len(pc.encrypt(("LOGIN:" + PASSWORD).encode()))))
                 self.try_logins -= 1
                 if self.try_logins == 0:
                     logging.error("连接失败")
@@ -201,31 +199,25 @@ class Tunnel(object):
             for r in rset:  # pylint: disable=C0103
                 if r == self.tfd:
                     data = os.read(self.tfd, MTU)
-                    #src_d, dst_d = data[16:20], data[20:24]
-                    # logging.debug("网卡数据：src: %s \t dst: %s" %
-                    #              (b2a_hex(src_d), b2a_hex(dst_d)))
-                    # data_header = data[:64]
-                    # print("data_header: %s" % (b2a_hex(data_header)))
-                    # logging.debug("网卡收到长度：%d" % (len(data)))
                     if IS_SERVER:  # Server
                         src, dst = data[16:20], data[20:24]
-                        # logging.debug("src: %s \t dst: %s" %
-                        # (b2a_hex(src), b2a_hex(dst)))
+                        logging.debug("src: %s \t dst: %s",
+                                      b2a_hex(src), b2a_hex(dst))
                         for key in self.clients:
                             if dst == self.clients[key]["local_ipn"]:
-                                # logging.debug("服务端socket写入长度: %s" %
-                                #              (len(pc.encrypt(data))))
                                 self.udpfd.sendto(pc.encrypt(data), key)
                     else:  # Client
-                        # logging.debug("客户端发送长度: %s" % (len(pc.encrypt(data))))
+                        logging.debug("客户端发送长度: %s", len(pc.encrypt(data)))
                         self.udpfd.sendto(pc.encrypt(data), (
                             self.server_ip, PORT))
 
                 elif r == self.udpfd:
-                    data, src = self.udpfd.recvfrom(BUFFER_SIZE)
-                    # logging.debug("解密前的数据: %s" % (data))
-                    data = pc.decrypt(data)
-                    # logging.debug("socket收到数据 %s" % (data))
+                    data_de, src = self.udpfd.recvfrom(BUFFER_SIZE)
+                    data = pc.decrypt(data_de)
+                    if not data:
+                        logging.warning("收到一个解密失败的包")
+                        logging.debug("包为：%s", data)
+                        continue
                     if IS_SERVER:  # Server
                         key = src
                         if key not in self.clients:
@@ -258,44 +250,38 @@ class Tunnel(object):
                                 logging.warning("来自 %s 的连接密码无效", src)
                                 self.udpfd.sendto(
                                     pc.encrypt("LOGIN:PASSWORD".encode()), src)
-                            except AttributeError:
-                                logging.warning("抓到一个str：%s", data)
                             except:
                                 raise Exception
                         else:
-                            # logging.debug("服务端写入网卡长度: %s" % (len(data)))
+                            logging.debug("服务端写入网卡长度: %s", len(data))
                             os.write(self.tfd, data)
-                            #src_d2, dst_d2 = data[16:20], data[20:24]
-                            # logging.debug("服务端发出：src: %s \t dst: %s" %
-                            #              (b2a_hex(src_d2), b2a_hex(dst_d2)))
                             self.clients[key]["aliveTime"] = time.time()
 
                     else:  # Client
                         try:
                             data = data.decode()
-                            if data.startswith("LOGIN"):
-                                if data.endswith("PASSWORD"):
-                                    self.logged = False
-                                    logging.error("连接失败！")
-                                elif data.split(":")[1] == (
-                                        "SUCCESS"):
-                                    recv_ip = data.split(":")[2]
-                                    self.logged = True
-                                    self.try_logins = 5
-                                    logging.info("登录成功\tIP: %s", recv_ip)
-                                    self.config(recv_ip)
-                                    self.config_routes()
                         except UnicodeDecodeError:
-                            # logging.debug("套接字收到数据 %s" %(data))
-                            # logging.debug("客户端写入网卡长度: %s" % (len(data)))
                             os.write(self.tfd, data)
-                        except AttributeError:
-                            logging.warning("抓到一个str：%s", data)
+                            client_time = time.time()
                         except:
                             raise Exception
+
+                        if data.startswith("LOGIN"):
+                            if data.endswith("PASSWORD"):
+                                self.logged = False
+                                logging.error("连接失败！")
+                            elif data.split(":")[1] == (
+                                    "SUCCESS"):
+                                recv_ip = data.split(":")[2]
+                                self.logged = True
+                                self.try_logins = 5
+                                logging.info("登录成功\tIP: %s", recv_ip)
+                                self.config(recv_ip)
+                                self.config_routes()
+
+            # 解决timeout的连接
+            cur_time = time.time()
             if IS_SERVER:  # Server
-                # 删除timeout的连接
-                cur_time = time.time()
                 clients_copy = deepcopy(self.clients)
                 for key in clients_copy:
                     if cur_time - self.clients[key]["aliveTime"] > TIMEOUT:
@@ -305,6 +291,14 @@ class Tunnel(object):
                         dhcpd.remove_unused_ip_from_list(
                             self.clients[key]["local_ip"])
                         self.clients.pop(key)
+            else:
+                if cur_time - client_time > TIMEOUT:
+                    logging.warning("连接超时")
+                    logging.info("终止")
+                    self.restore_routes()
+                    self.close()
+                    sys.exit(TIMEOUT)
+
 
 
 class DHCP():
@@ -314,8 +308,10 @@ class DHCP():
         '''初始化'''
         self.ip_pool = IP(ip)
         # 去掉网关，服务器和广播地址
-        self.used_ip_list = [self.ip_pool[0],
-                             self.ip_pool[1], self.ip_pool[-1]]
+        self.used_ip_list = [
+            self.ip_pool[0],
+            self.ip_pool[1],
+            self.ip_pool[-1]]
 
     def add_used_ip_to_list(self, usd_ip):
         '''添加已经被使用的ip进列表'''
@@ -399,22 +395,16 @@ class AES_Encrypt(object):  # pylint: disable=C0103
 
     def decrypt(self, text):
         '''解密数据
-            解密成功返回原文，失败返回 "-1"
+            解密成功返回原文，失败返回 None
         '''
         cipher = AES.new(self.key, self.mode, self.iv)
         if len(text) % 16 == 0:  # pylint: disable=R1705
             plain_text = cipher.decrypt(text)
-            # logging.debug("解密后的数据: %s" % (plain_text))
+            logging.debug("解密后的数据: %s" % (plain_text))
             add = plain_text[-1]
             return plain_text[:-add]
         else:
-            logging.debug("解密无效")
-            return "-1"
-
-
-def ping_server():
-    '''心跳函数'''
-    pass
+            return None
 
 
 def usage(status):
@@ -475,8 +465,7 @@ if __name__ == "__main__":
         usage(ARGS_ERROR)
 
     IFACE_IP, PORT, PASSWORD = parser_config(config)
-    if IS_SERVER:
-        daemon.daemon()
+    daemon.daemon()
     if IS_SERVER == 2 or PORT == 0:
         usage(0)
 
@@ -485,12 +474,7 @@ if __name__ == "__main__":
     try:
         TUN.run()
     except KeyboardInterrupt:
-        try:
-            # print(traceback.format_exc())
-            TUN.restore_routes()
-            TUN.close()
-        except:  # pylint: disable=W0702
-                 # just concealmen some output
-            pass
+        TUN.restore_routes()
+        TUN.close()
     finally:
         print("end")

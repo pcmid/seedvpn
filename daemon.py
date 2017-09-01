@@ -13,7 +13,7 @@ def daemon():
         logging.error(e.strerror + "\n" + "Fork Failed")
         sys.exit(1)
 
-    #os.chdir("/")
+    os.chdir("/")
     os.umask(0)
     os.setsid()
 
