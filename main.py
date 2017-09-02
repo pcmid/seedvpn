@@ -67,7 +67,6 @@ MTU = 1500
 TIMEOUT = 10 * 60  # seconds
 
 logging.basicConfig(level=logging.INFO,
-                    filename="/var/log/seedvpn.log",
                     format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%H:%M:%S %a, %d %b %Y')
 
@@ -467,7 +466,8 @@ if __name__ == "__main__":
         usage(ARGS_ERROR)
 
     IFACE_IP, PORT, PASSWORD = parser_config(config)
-    daemon.daemon()
+    if IS_SERVER:
+        daemon.daemon()
     if IS_SERVER == 2 or PORT == 0:
         usage(0)
 
