@@ -216,7 +216,6 @@ class Tunnel(object):
                     data = pc.decrypt(data_de)
                     if not data:
                         logging.warning("收到一个解密失败的包")
-                        logging.debug("包为：%s", data)
                         continue
                     if IS_SERVER:  # Server
                         key = src
