@@ -5,7 +5,7 @@
 import sys
 import logging
 from Crypto.Cipher import AES
-from seedvpn import shell
+from test import shell
 
 PWD = None
 

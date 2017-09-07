@@ -7,6 +7,7 @@ import socket
 import select
 import logging
 import time
+from test import AES_Encrypt
 
 
 def run():  # pylint: disable=R0912,R0915
@@ -17,7 +18,7 @@ def run():  # pylint: disable=R0912,R0915
     global IFACE_IP, PORT, PASSWORD  # pylint: disable=W0603
     pc = AES_Encrypt(PASSWORD)  # pylint: disable=C0103
     udpfd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    
+
     server_ip = socket.gethostbyname(IFACE_IP)
     udpfd.bind(("", 0))
 
