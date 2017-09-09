@@ -2,19 +2,13 @@
 #!/usr/bin/env python3
 # coding=utf-8
 
-import sys
 import logging
 from Crypto.Cipher import AES
-from test import shell
+import shell
 
-PWD = None
+PWD = shell.parser_config()["password"]
 
-def get_pwd_from_config(config_password):
-    global PWD
-    PWD = config_password
-
-def format_password():
-    password = shell.parser_config
+def __format_password():
     count = len(PWD)
     if count < 16:
         add = (16 - count)
@@ -28,13 +22,14 @@ def format_password():
         key = PWD[:32]
     return key
 
+
 def encrypt(text):
     '''加密数据
         返回: 加密的字符串
     '''
     mode = AES.MODE_CBC
     iv = b'0' * 16  # pylint: disable=C0103
-    key = format_password()
+    key = __format_password()
     cipher = AES.new(key, mode, iv)
     # 这里密钥key 长度必须为16（AES-128）,
     # 24（AES-192）,或者32 （AES-256）Bytes 长度
@@ -56,11 +51,12 @@ def encrypt(text):
     # logging.debug("加密后的数据: %s" % (cipher_text))
     return cipher_text
 
+
 def decrypt(text):
     '''解密数据
         解密成功返回原文，失败返回 None
     '''
-    key = format_password()
+    key = __format_password()
     mode = AES.MODE_CBC
     iv = b'0' * 16  # pylint: disable=C0103
     cipher = AES.new(key, mode, iv)
@@ -73,8 +69,10 @@ def decrypt(text):
         logging.warning("解密无效: 密文长度错误")
         return None
 
+
 if __name__ == "__main__":
-    get_pwd_from_config({"password":"test"})
+    __format_password()
     a = encrypt("test")
     print(a)
     print(decrypt(a))
+    '''RUN'''

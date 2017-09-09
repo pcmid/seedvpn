@@ -7,10 +7,9 @@ import socket
 import select
 import logging
 import time
-from test import AES_Encrypt
 
 
-def run():  # pylint: disable=R0912,R0915
+def client_run():  # pylint: disable=R0912,R0915
     '''运行'''
     logged = False
     try_logins = 5
@@ -50,7 +49,7 @@ def run():  # pylint: disable=R0912,R0915
                 # logging.debug("网卡收到长度：%d" % (len(data)))
                 # logging.debug("客户端发送长度: %s" % (len(pc.encrypt(data))))
                 udpfd.sendto(pc.encrypt(data), (
-                        server_ip, PORT))
+                    server_ip, PORT))
 
             elif r == udpfd:
                 data, src = udpfd.recvfrom(BUFFER_SIZE)
