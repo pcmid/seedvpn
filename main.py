@@ -98,7 +98,7 @@ class Tunnel(object):
         '''创建网卡'''
         try:
             self.tfd = os.open("/dev/net/tun", os.O_RDWR)
-        except NameError:
+        except (NameError, FileNotFoundError):
             self.tfd = os.open("/dev/tun", os.O_RDWR)
         ifs = fcntl.ioctl(self.tfd, TUNSETIFF, struct.pack(
             "16sH", "tun%d".encode("utf-8"), IFF_TUN))
